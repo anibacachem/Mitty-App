@@ -21,6 +21,7 @@ export default function Principal({ pareja, aviso, onAnadir, onRitual, onCierre,
   const [refrescando, setRefrescando] = useState(false); // al arrastrar hacia abajo
   const [conexion, setConexion] = useState('probando'); // 'probando' | 'ok' | 'sin'
   const [abierto, setAbierto] = useState(null); // id de la fila expandida
+  const [infoAbierta, setInfoAbierta] = useState(false); // explicación del Detalle (botón i)
   const enCurso = useRef(false); // evita pedir de nuevo si la petición anterior no terminó
 
   // yo es 0 o 1: elegimos mi nombre y el de la otra persona
@@ -204,7 +205,18 @@ export default function Principal({ pareja, aviso, onAnadir, onRitual, onCierre,
 
       {/* Tarjeta de detalle: los números que explican el saldo */}
       <View style={[styles.tarjeta, { marginTop: 20 }]}>
-        <Text style={styles.etiqueta}>Detalle del saldo</Text>
+        <View style={styles.tarjetaArriba}>
+          <Text style={styles.etiqueta}>Detalle del saldo</Text>
+          {/* Botón (i): muestra u oculta la explicación para ahorrar espacio */}
+          <Pressable
+            style={[styles.botonInfo, infoAbierta && styles.botonInfoActivo]}
+            onPress={() => setInfoAbierta(!infoAbierta)}
+            hitSlop={10}
+            accessibilityLabel="Explicación del detalle"
+          >
+            <Text style={[styles.botonInfoTexto, infoAbierta && { color: '#fff' }]}>i</Text>
+          </Pressable>
+        </View>
         <View style={styles.detalleFila}>
           <Text style={styles.detalleTexto} />
           {orden.map((i) => (
@@ -233,11 +245,11 @@ export default function Principal({ pareja, aviso, onAnadir, onRitual, onCierre,
             </Text>
           ))}
         </View>
-        <Text style={styles.nota}>
+        {infoAbierta && <Text style={styles.nota}>
           Gasto total = todo lo que anotó como gasto suyo, incluidas las invitaciones. Le correspondía = su parte
           (en una invitación, todo es de quien invita). Pagó / Recibió = dinero entregado entre ustedes para
           saldar la deuda. Resultado = gasto total − lo que le correspondía ± pagos.
-        </Text>
+        </Text>}
       </View>
 
       {/* Código de la pareja, compacto */}
@@ -248,7 +260,7 @@ export default function Principal({ pareja, aviso, onAnadir, onRitual, onCierre,
         <Text style={styles.copiar}>{copiado ? '¡Copiado!' : 'Copiar'}</Text>
       </Pressable>
 
-      <Text style={styles.seccion}>Gastos del mes</Text>
+      <Text style={styles.seccion}>Gastos del mes ({listaMes.length})</Text>
       {cargando && <ActivityIndicator color={ACENTO} style={{ marginTop: 12 }} />}
       {!cargando && conexion === 'sin' && movimientos.length === 0 && (
         <Text style={styles.error}>No se pudo cargar. Se reintenta solo cada 5 segundos.</Text>
@@ -343,6 +355,10 @@ const styles = StyleSheet.create({
   rojo: { color: '#B91C1C' },
   verde: { color: '#16A34A' },
   nota: { fontSize: 12, color: '#888', marginTop: 8 },
+  botonInfo: { width: 22, height: 22, borderRadius: 11, borderWidth: 1.5, borderColor: ACENTO,
+    alignItems: 'center', justifyContent: 'center', marginBottom: 6 },
+  botonInfoActivo: { backgroundColor: ACENTO },
+  botonInfoTexto: { color: ACENTO, fontSize: 13, fontWeight: '700', fontStyle: 'italic' },
   codigoFila: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
     marginTop: 16, paddingHorizontal: 4 },
   codigoTexto: { fontSize: 13, color: '#777' },
