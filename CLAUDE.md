@@ -7,7 +7,7 @@ Todo el código se escribe durante el evento. No copies código de proyectos ant
 Solo datos inventados. Nunca datos personales ni financieros reales.
 Nunca leas, edites ni subas .env. Nunca escribas llaves ni contraseñas en el código: usa EXPO_PUBLIC_SUPABASE_URL y EXPO_PUBLIC_SUPABASE_KEY, definidas en .env.
 2. Alcance
-Prioriza este recorrido y nada más: anotar un gasto en una línea (meta: menos de 5 segundos), lista y saldo sincronizados entre dos teléfonos, ritual de domingo (resumen semanal) y cierre de mes. Quedan fuera: bancos, edición de gastos, inicio de sesión y varias parejas. Si te pido algo fuera de ese alcance, avísame antes de hacerlo.
+Prioriza este recorrido y nada más: anotar un gasto en una línea (meta: menos de 20 segundos), lista y saldo sincronizados entre dos teléfonos, ritual de domingo (resumen semanal) y cierre de mes. Quedan fuera: bancos, edición de gastos, inicio de sesión y varias parejas. Si te pido algo fuera de ese alcance, avísame antes de hacerlo.
 
 3. Al empezar una sesión
 Lee README.md y bitacora.md para saber qué se hizo antes.
