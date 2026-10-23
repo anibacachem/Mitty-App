@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { cargarTodo } from '../datos';
 import DiaDeclarable from '../componentes/DiaDeclarable';
+import BotonInfo from '../componentes/BotonInfo';
 import { hoyISO, pesos } from '../formato';
 import { calcularBalance, describirSaldo } from '../saldo';
 import {
@@ -49,6 +50,7 @@ export default function Ritual({ pareja, onVolver }) {
   const [metasDisponible, setMetasDisponible] = useState(true); // false si falta la tabla metas_dia
   const [diaSel, setDiaSel] = useState(null); // día tocado en la tira (null = hoy)
   const [error, setError] = useState('');
+  const [infoResumen, setInfoResumen] = useState(false); // explicación del Resumen (botón i)
 
   // Pedimos todos los movimientos y los días declarados: la semana sale de filtrarlos y el saldo usa todos
   async function cargar() {
@@ -116,7 +118,7 @@ export default function Ritual({ pareja, onVolver }) {
   const semana = movimientos.filter((m) => m.fecha >= semanaActual.desde && m.fecha <= semanaActual.hasta);
   const gastosSemana = semana.filter((m) => m.tipo !== 'pago'); // un pago entre ustedes no es un gasto
   const total = gastosSemana.reduce((suma, m) => suma + Number(m.monto), 0);
-  const pagoPorPersona = calcularBalance(semana).gastado; // cuánto pagó cada uno esta semana
+  const pagoPorPersona = calcularBalance(semana).gastado; // cuánto gastó (puso de su bolsillo) cada uno esta semana
   const saldo = describirSaldo(calcularBalance(movimientos).neto, yo, nombres); // saldo de siempre, no solo de la semana
   const colorSaldo = { debo: '#B91C1C', medeben: ACENTO, amano: '#555' }[saldo.clase];
 
@@ -193,20 +195,31 @@ export default function Ritual({ pareja, onVolver }) {
 
       {/* 4. Resumen corto */}
       <View style={styles.tarjeta}>
-        <Text style={styles.etiqueta}>Resumen de la semana</Text>
+        <View style={styles.tarjetaArriba}>
+          <Text style={styles.etiqueta}>Resumen de la semana</Text>
+          <BotonInfo activo={infoResumen} onPress={() => setInfoResumen(!infoResumen)} />
+        </View>
+        {infoResumen && (
+          <Text style={styles.notaInfo}>
+            Suma los gastos anotados con fecha de esta semana (lunes a domingo, recortada al mes): mitad, fracción,
+            "era del otro", invitaciones y personales. Los pagos entre ustedes no cuentan como gasto. "Gastó" es todo
+            lo que cada uno puso de su bolsillo, invitaciones incluidas. El medidor de arriba, en cambio, cuenta solo
+            los gastos compartidos. El saldo actual no es solo de la semana: suma todo lo anotado y aún no saldado.
+          </Text>
+        )}
         {gastosSemana.length === 0 ? (
           <Text style={styles.vacio}>Todavía no hay gastos esta semana.</Text>
         ) : (
           <>
             <View style={styles.filaResumen}>
               <Text style={styles.resumenEtiqueta}>
-                Total gastado ({gastosSemana.length} {gastosSemana.length === 1 ? 'gasto' : 'gastos'})
+                Gasto total ({gastosSemana.length} {gastosSemana.length === 1 ? 'gasto' : 'gastos'})
               </Text>
               <Text style={styles.resumenTotal}>{pesos(total)}</Text>
             </View>
             {orden.map((i) => (
               <View key={i} style={styles.filaResumen}>
-                <Text style={styles.resumenEtiqueta}>{i === yo ? `${nombres[i]} (tú) pagó` : `${nombres[i]} pagó`}</Text>
+                <Text style={styles.resumenEtiqueta}>{i === yo ? `${nombres[i]} (tú) gastó` : `${nombres[i]} gastó`}</Text>
                 <Text style={styles.resumenValor}>{pesos(pagoPorPersona[i])}</Text>
               </View>
             ))}
@@ -263,6 +276,9 @@ const styles = StyleSheet.create({
   panelTitulo: { fontSize: 15, fontWeight: '700', color: '#222' },
   nota: { fontSize: 12, color: '#888', marginTop: 10 },
   // Resumen
+  tarjetaArriba: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  notaInfo: { fontSize: 13, color: '#666', backgroundColor: '#F6F6F3', borderRadius: 10, padding: 10,
+    marginBottom: 8, lineHeight: 18 },
   filaResumen: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
     paddingVertical: 5 },
   resumenEtiqueta: { fontSize: 15, color: '#555', flexShrink: 1, paddingRight: 8 },

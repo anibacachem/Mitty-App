@@ -30,3 +30,4 @@
 - feat: lista del mes ordenada por fecha del gasto con botón para invertir | archivos: src/pantallas/Principal.js, bitacora.md | motivo: segunda vuelta; un gasto atrasado ahora aparece según el día en que ocurrió y no cuando se anotó. Exportar a Excel/PDF queda pospuesto
 - style: día de la semana en la fecha de cada gasto | archivos: src/formato.js, src/pantallas/Principal.js, bitacora.md | motivo: segunda vuelta; la fila dice "jue 22/10" y el orden se entiende de un vistazo
 - docs: README con los cambios de la segunda vuelta | archivos: README.md, bitacora.md | motivo: reflejar "Al día", detalle en palabras, caja con filtros y orden, pago a nombre de quien debe y exportar pospuesto
+- style: Resumen de la semana con "gastó", "Gasto total" y botón (i) | archivos: src/componentes/BotonInfo.js, src/pantallas/Ritual.js, bitacora.md | motivo: segunda vuelta; mismo vocabulario que la pantalla principal y explicación de qué considera el resumen
