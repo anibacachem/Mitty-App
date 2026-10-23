@@ -20,6 +20,15 @@ export function hoyISO() {
   const d = new Date();
   return aTexto(d, String(d.getDate()).padStart(2, '0'));
 }
+// Fecha LOCAL ("2026-10-23") de un instante guardado por Supabase, como el campo "creado".
+// Supabase guarda "creado" en hora UTC: si se anotó a las 22:30 en Chile, UTC ya marca el día siguiente.
+// Por eso pasamos por Date, que lo convierte a la hora del teléfono.
+export function fechaLocalDe(instante) {
+  // Recortamos los decimales de los segundos a 3 dígitos: algunos teléfonos no entienden 6
+  const d = new Date(String(instante).replace(/(\.\d{3})\d+/, '$1'));
+  return aTexto(d, String(d.getDate()).padStart(2, '0'));
+}
+
 // Primer día del mes actual: "2026-10-01". Sirve para pedir solo los gastos del mes.
 export function inicioDeMes() {
   return aTexto(new Date(), '01');
