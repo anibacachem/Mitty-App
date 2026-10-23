@@ -1,11 +1,12 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { ActivityIndicator, FlatList, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, FlatList, Pressable, ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
 import * as Clipboard from 'expo-clipboard';
 import { cargarTodo } from '../datos';
 import { etiquetaTipo, fechaConDia, hoyISO, inicioDeMes, pesos } from '../formato';
 import { calcularBalance, describirSaldo, resultadoEnPalabras, textoReparto } from '../saldo';
 import { limitesDelMes, medirPeriodo } from '../habito';
 import DiaDeclarable from '../componentes/DiaDeclarable';
+import { guardarActivado, leerActivado, notificacionDePrueba, pedirPermiso } from '../notificaciones';
 
 const CADA_CUANTO_MS = 5000; // los datos se refrescan solos cada 5 segundos
 // Filtros de la lista: qué tipos de movimiento muestra cada uno (null = todos)
@@ -31,6 +32,8 @@ export default function Principal({ pareja, aviso, onAnadir, onRitual, onCierre,
   const [recientePrimero, setRecientePrimero] = useState(true); // orden de la lista: true = más reciente arriba
   const [filtro, setFiltro] = useState('todos'); // filtro activo de la lista del mes
   const [infoAbierta, setInfoAbierta] = useState(false); // explicación del Detalle (botón i)
+  const [recordatorios, setRecordatorios] = useState(false); // ¿están activados los recordatorios?
+  const [notaRecord, setNotaRecord] = useState(''); // mensaje bajo el interruptor ("Te enviamos una de prueba")
   const enCurso = useRef(false); // evita pedir de nuevo si la petición anterior no terminó
 
   // yo es 0 o 1: elegimos mi nombre y el de la otra persona
@@ -64,9 +67,33 @@ export default function Principal({ pareja, aviso, onAnadir, onRitual, onCierre,
   // El "return" apaga el reloj al salir de la pantalla, para no pedir datos de más.
   useEffect(() => {
     cargar();
+    leerActivado().then(setRecordatorios); // recordamos lo que eligió la última vez
     const reloj = setInterval(cargar, CADA_CUANTO_MS);
     return () => clearInterval(reloj);
   }, []);
+
+  // Interruptor de recordatorios. Al activar: pedimos permiso y mandamos una notificación de prueba.
+  async function cambiarRecordatorios(quiere) {
+    setNotaRecord('');
+    if (!quiere) {
+      setRecordatorios(false);
+      await guardarActivado(false);
+      return;
+    }
+    try {
+      const permitido = await pedirPermiso();
+      if (!permitido) {
+        setNotaRecord('Sin permiso. Actívalo en los ajustes del teléfono para recibir recordatorios.');
+        return; // el interruptor se queda apagado
+      }
+      await notificacionDePrueba(miNombre);
+      setRecordatorios(true);
+      await guardarActivado(true);
+      setNotaRecord('Listo. En unos segundos te llegará una notificación de prueba.');
+    } catch (e) {
+      setNotaRecord('No se pudo activar: ' + String(e.message).slice(0, 120));
+    }
+  }
 
   async function copiarCodigo() {
     await Clipboard.setStringAsync(pareja.codigo);
@@ -276,6 +303,20 @@ export default function Principal({ pareja, aviso, onAnadir, onRitual, onCierre,
         <Text style={styles.copiar}>{copiado ? '¡Copiado!' : 'Copiar'}</Text>
       </Pressable>
 
+      {/* Recordatorios: interruptor para recibir avisos que invitan a anotar los gastos */}
+      <View style={styles.recordFila}>
+        <View style={{ flex: 1, paddingRight: 12 }}>
+          <Text style={styles.recordTitulo}>Recordatorios diarios</Text>
+          <Text style={styles.recordSub}>Te avisamos para que anotes tus gastos en pareja</Text>
+        </View>
+        <Switch
+          value={recordatorios}
+          onValueChange={cambiarRecordatorios}
+          trackColor={{ false: '#D4D4D0', true: ACENTO }}
+        />
+      </View>
+      {notaRecord !== '' && <Text style={styles.recordNota}>{notaRecord}</Text>}
+
       <Text style={styles.seccion}>
         Gastos del mes ({filtro === 'todos' ? listaMes.length : `${listaVista.length} de ${listaMes.length}`})
       </Text>
@@ -403,6 +444,11 @@ const styles = StyleSheet.create({
   codigoTexto: { fontSize: 13, color: '#777' },
   codigoValor: { fontWeight: '700', letterSpacing: 1, color: '#444' },
   copiar: { color: ACENTO, fontSize: 14, fontWeight: '600' },
+  recordFila: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#fff', borderRadius: 16,
+    borderWidth: 1, borderColor: '#E5E5E0', padding: 14, marginTop: 16 },
+  recordTitulo: { fontSize: 15, fontWeight: '700', color: '#222' },
+  recordSub: { fontSize: 12, color: '#888', marginTop: 2 },
+  recordNota: { fontSize: 12, color: '#666', marginTop: 6, paddingHorizontal: 4 },
   seccion: { fontSize: 18, fontWeight: '700', color: '#222', marginTop: 24, marginBottom: 8 },
   vacio: { color: '#777', fontSize: 15, marginTop: 8 },
   error: { color: '#B91C1C', fontSize: 14, marginTop: 8 },
