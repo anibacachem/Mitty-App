@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { ActivityIndicator, FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, FlatList, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import * as Clipboard from 'expo-clipboard';
 import { cargarTodo } from '../datos';
 import { etiquetaTipo, hoyISO, inicioDeMes, pesos } from '../formato';
@@ -8,6 +8,7 @@ import { limitesDelMes, medirPeriodo } from '../habito';
 import DiaDeclarable from '../componentes/DiaDeclarable';
 
 const CADA_CUANTO_MS = 5000; // los datos se refrescan solos cada 5 segundos
+const ALTO_CAJA = 400; // alto de la caja de gastos: caben unos 5 gastos; el resto se ve con scroll
 
 // Pantalla principal: saludo, saldo, detalle, botón de añadir y lista de gastos del mes.
 // pareja: { codigo, nombre0, nombre1, yo }. aviso: mensaje corto arriba (ej. "Gasto anotado").
@@ -85,19 +86,26 @@ export default function Principal({ pareja, aviso, onAnadir, onRitual, onCierre,
   const orden = [yo, otro];
   const hayPagos = balance.pagosEnviados[0] + balance.pagosEnviados[1] > 0;
   const filasDetalle = [
-    { texto: 'Pagó en total', valores: orden.map((i) => pesos(balance.gastado[i])) },
+    { texto: 'Gasto total', valores: orden.map((i) => pesos(balance.gastado[i])) },
     { texto: 'Le correspondía', valores: orden.map((i) => pesos(balance.corresponde[i])) },
   ];
   if (hayPagos) {
+    // Dos filas con solo el monto (o "—"), así todo queda alineado a la derecha:
+    // "Pagó" = dinero que envió para saldar la deuda; "Recibió" = dinero que le llegó.
     filasDetalle.push({
-      texto: 'Pagos entre ustedes',
-      // En palabras: quien envió dinero "Pagó", quien lo recibió "Recibió"
-      valores: orden.map((i) => {
-        const dif = balance.pagosEnviados[i] - balance.pagosRecibidos[i];
-        return dif >= 0.5 ? `Pagó ${pesos(dif)}` : dif <= -0.5 ? `Recibió ${pesos(-dif)}` : '—';
-      }),
+      texto: 'Pagó',
+      valores: orden.map((i) => (balance.pagosEnviados[i] >= 0.5 ? pesos(balance.pagosEnviados[i]) : '—')),
+    });
+    filasDetalle.push({
+      texto: 'Recibió',
+      valores: orden.map((i) => (balance.pagosRecibidos[i] >= 0.5 ? pesos(balance.pagosRecibidos[i]) : '—')),
     });
   }
+
+  // Lista del mes: del más nuevo anotado al más antiguo (por la hora en que se anotó)
+  const listaMes = [...delMes].sort((a, b) =>
+    String(b.creado ?? b.fecha).localeCompare(String(a.creado ?? a.fecha))
+  );
 
   // Una fila de la lista. Al tocarla se abre y muestra el reparto.
   function renderFila({ item }) {
@@ -108,7 +116,7 @@ export default function Principal({ pareja, aviso, onAnadir, onRitual, onCierre,
           <View style={{ flex: 1 }}>
             <Text style={styles.filaTitulo}>{item.descripcion}</Text>
             <Text style={styles.filaDetalle}>
-              Pagó {nombres[item.pagador]} · {etiquetaTipo(item.tipo)} · {item.fecha.slice(8, 10)}/{item.fecha.slice(5, 7)}
+              {item.tipo === 'pago' ? 'Pagó' : 'Gastó'} {nombres[item.pagador]} · {etiquetaTipo(item.tipo)} · {item.fecha.slice(8, 10)}/{item.fecha.slice(5, 7)}
             </Text>
           </View>
           <Text style={styles.filaMonto}>{pesos(Number(item.monto))}</Text>
@@ -226,8 +234,9 @@ export default function Principal({ pareja, aviso, onAnadir, onRitual, onCierre,
           ))}
         </View>
         <Text style={styles.nota}>
-          Pagó en total = todo lo que puso de su bolsillo, incluidas las invitaciones. Le correspondía = su parte
-          (en una invitación, todo es de quien invita). Resultado = lo pagado − lo que le correspondía.
+          Gasto total = todo lo que anotó como gasto suyo, incluidas las invitaciones. Le correspondía = su parte
+          (en una invitación, todo es de quien invita). Pagó / Recibió = dinero entregado entre ustedes para
+          saldar la deuda. Resultado = gasto total − lo que le correspondía ± pagos.
         </Text>
       </View>
 
@@ -247,6 +256,17 @@ export default function Principal({ pareja, aviso, onAnadir, onRitual, onCierre,
       {!cargando && delMes.length === 0 && (conexion === 'ok' || movimientos.length > 0) && (
         <Text style={styles.vacio}>Aún no hay gastos este mes. ¡Anota el primero!</Text>
       )}
+
+      {/* Caja con scroll propio: se ven unos 5 gastos (los más nuevos arriba); al bajar aparecen los más antiguos */}
+      {listaMes.length > 0 && (
+        <View style={styles.cajaLista}>
+          <ScrollView nestedScrollEnabled showsVerticalScrollIndicator style={{ maxHeight: ALTO_CAJA }}>
+            {listaMes.map((item) => (
+              <View key={item.id}>{renderFila({ item })}</View>
+            ))}
+          </ScrollView>
+        </View>
+      )}
     </View>
   );
 
@@ -255,10 +275,8 @@ export default function Principal({ pareja, aviso, onAnadir, onRitual, onCierre,
       <FlatList
         style={styles.lista}
         contentContainerStyle={{ padding: 24, paddingBottom: 40 }}
-        data={delMes}
-        extraData={abierto}
-        keyExtractor={(m) => m.id}
-        renderItem={renderFila}
+        data={[]} // los gastos van dentro de la caja con scroll del encabezado
+        renderItem={null}
         ListHeaderComponent={encabezado}
         ListFooterComponent={
           <Pressable onPress={onSalir}>
@@ -333,6 +351,8 @@ const styles = StyleSheet.create({
   seccion: { fontSize: 18, fontWeight: '700', color: '#222', marginTop: 24, marginBottom: 8 },
   vacio: { color: '#777', fontSize: 15, marginTop: 8 },
   error: { color: '#B91C1C', fontSize: 14, marginTop: 8 },
+  cajaLista: { backgroundColor: '#F3F3EE', borderRadius: 16, borderWidth: 1, borderColor: '#E5E5E0',
+    paddingHorizontal: 8, paddingBottom: 8, marginTop: 4 },
   fila: { backgroundColor: '#fff', borderRadius: 12, borderWidth: 1, borderColor: '#E5E5E0',
     padding: 14, marginTop: 8 },
   filaArriba: { flexDirection: 'row', alignItems: 'center' },
