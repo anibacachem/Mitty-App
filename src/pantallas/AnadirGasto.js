@@ -2,12 +2,19 @@ import { useState } from 'react';
 import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { formatearMonto, soloDigitos } from '../formato';
 
-// Resumen fijo que aparece arriba en cada paso: "$42.000 · super".
-// "extra" recibirá después lo que ya elegiste (Mitad, Pagó Ana...). Al tocarlo, vuelves a editar el monto.
+// Las tres formas de repartir un gasto. "valor" es lo que luego se guarda en Supabase.
+const TIPOS = [
+  { valor: 'mitad', titulo: 'Mitad', detalle: '50% y 50%. La otra persona debe la mitad.' },
+  { valor: 'fraccion', titulo: 'Fracción', detalle: 'Cada uno una parte distinta.' },
+  { valor: 'invita', titulo: 'Invitación', detalle: 'Uno invitó. No se comparte ni genera deuda.' },
+];
+
+// Resumen fijo que aparece arriba en cada paso: "$42.000 · super · Mitad".
+// Al tocarlo, vuelves a editar el monto.
 function Resumen({ monto, descripcion, extra, onEditar }) {
   const partes = [`$${formatearMonto(monto)}`];
   if (descripcion.trim()) partes.push(descripcion.trim());
-  if (extra) partes.push(extra);
+  extra.forEach((e) => partes.push(e)); // lo elegido: tipo, quién pagó
   return (
     <Pressable style={styles.resumenCaja} onPress={onEditar}>
       <Text style={styles.resumen}>{partes.join(' · ')}</Text>
@@ -18,14 +25,26 @@ function Resumen({ monto, descripcion, extra, onEditar }) {
 
 // Flujo para anotar un gasto, de a un paso por pantalla:
 // monto -> tipo (mitad / fracción / invitación) -> ¿quién pagó?
-// Por ahora solo existe el paso "monto"; los demás se agregan en los pasos 2 a 4.
 // pareja: { codigo, nombre0, nombre1, yo }. onCerrar: volver a la pantalla principal.
 export default function AnadirGasto({ pareja, onCerrar }) {
-  const [paso, setPaso] = useState('monto'); // 'monto' | 'tipo' (próximamente)
+  // 'monto' | 'tipo' | 'fraccion' (paso 3) | 'quien' | 'listo' (paso 4 guardará)
+  const [paso, setPaso] = useState('monto');
   const [textoMonto, setTextoMonto] = useState(''); // lo que se ve en el campo, con puntos
   const [descripcion, setDescripcion] = useState(''); // opcional
+  const [tipo, setTipo] = useState(null); // 'mitad' | 'fraccion' | 'invita'
+  const [pagador, setPagador] = useState(null); // 0 o 1, igual que en la base de datos
 
   const monto = soloDigitos(textoMonto); // el número real: 42000
+
+  // Nombres según quién soy: yo = 0 o 1
+  const nombres = [pareja.nombre0, pareja.nombre1];
+  const miNombre = nombres[pareja.yo];
+  const otroNombre = nombres[pareja.yo === 0 ? 1 : 0];
+
+  // Lo elegido hasta ahora, para mostrarlo en el resumen de arriba
+  const extra = [];
+  if (tipo) extra.push(TIPOS.find((t) => t.valor === tipo).titulo);
+  if (pagador !== null) extra.push(`Pagó ${nombres[pagador]}`);
 
   // Mientras escribes, mostramos el monto con puntos de miles (42.000)
   function cambiarMonto(texto) {
@@ -33,12 +52,89 @@ export default function AnadirGasto({ pareja, onCerrar }) {
     setTextoMonto(numero === 0 ? '' : formatearMonto(numero));
   }
 
+  // Al elegir el tipo: Mitad e Invitación saltan a "¿quién pagó?"; Fracción pide montos antes.
+  function elegirTipo(valor) {
+    setTipo(valor);
+    setPagador(null);
+    setPaso(valor === 'fraccion' ? 'fraccion' : 'quien');
+  }
+
+  // Al elegir quién pagó, el gasto queda completo.
+  function elegirPagador(indice) {
+    setPagador(indice);
+    setPaso('listo');
+  }
+
+  // Encabezado común de los pasos después del monto: el resumen siempre visible
+  const resumen = (
+    <Resumen monto={monto} descripcion={descripcion} extra={extra} onEditar={() => setPaso('monto')} />
+  );
+
+  // ---- Paso: tipo de gasto ----
   if (paso === 'tipo') {
-    // Marcador temporal hasta el Paso 2
     return (
       <View style={styles.contenedor}>
-        <Resumen monto={monto} descripcion={descripcion} onEditar={() => setPaso('monto')} />
-        <Text style={styles.ayuda}>El paso "tipo de gasto" está en construcción.</Text>
+        {resumen}
+        <Text style={styles.pregunta}>¿Cómo se reparte?</Text>
+        {TIPOS.map((t) => (
+          <Pressable key={t.valor} style={styles.opcion} onPress={() => elegirTipo(t.valor)}>
+            <Text style={styles.opcionTitulo}>{t.titulo}</Text>
+            <Text style={styles.opcionDetalle}>{t.detalle}</Text>
+          </Pressable>
+        ))}
+        <Pressable onPress={() => setPaso('monto')}>
+          <Text style={styles.enlace}>Atrás</Text>
+        </Pressable>
+      </View>
+    );
+  }
+
+  // ---- Paso: montos de la fracción (se construye en el Paso 3) ----
+  if (paso === 'fraccion') {
+    return (
+      <View style={styles.contenedor}>
+        {resumen}
+        <Text style={styles.ayuda}>Los montos por persona se agregan en el Paso 3.</Text>
+        <Pressable style={styles.boton} onPress={() => setPaso('quien')}>
+          <Text style={styles.textoBoton}>Seguir (temporal)</Text>
+        </Pressable>
+        <Pressable onPress={() => setPaso('tipo')}>
+          <Text style={styles.enlace}>Atrás</Text>
+        </Pressable>
+      </View>
+    );
+  }
+
+  // ---- Paso: ¿quién pagó? (tú primero y resaltado, porque casi siempre pagas tú) ----
+  if (paso === 'quien') {
+    return (
+      <View style={styles.contenedor}>
+        {resumen}
+        <Text style={styles.pregunta}>
+          {tipo === 'invita' ? '¿Quién invitó y pagó?' : '¿Quién pagó?'}
+        </Text>
+        <Pressable style={styles.botonGrande} onPress={() => elegirPagador(pareja.yo)}>
+          <Text style={styles.textoBoton}>{miNombre} (tú)</Text>
+        </Pressable>
+        <Pressable style={styles.botonGrandeClaro} onPress={() => elegirPagador(pareja.yo === 0 ? 1 : 0)}>
+          <Text style={styles.textoBotonClaro}>{otroNombre}</Text>
+        </Pressable>
+        <Pressable onPress={() => setPaso(tipo === 'fraccion' ? 'fraccion' : 'tipo')}>
+          <Text style={styles.enlace}>Atrás</Text>
+        </Pressable>
+      </View>
+    );
+  }
+
+  // ---- Paso: gasto completo (el Paso 4 lo guardará en Supabase) ----
+  if (paso === 'listo') {
+    return (
+      <View style={styles.contenedor}>
+        {resumen}
+        <Text style={styles.ayuda}>Gasto completo. Guardarlo en la base de datos se agrega en el Paso 4.</Text>
+        <Pressable onPress={() => setPaso('quien')}>
+          <Text style={styles.enlace}>Cambiar quién pagó</Text>
+        </Pressable>
         <Pressable onPress={onCerrar}>
           <Text style={styles.enlace}>Cancelar</Text>
         </Pressable>
@@ -46,6 +142,7 @@ export default function AnadirGasto({ pareja, onCerrar }) {
     );
   }
 
+  // ---- Paso: monto ----
   return (
     <View style={styles.contenedor}>
       <Text style={styles.titulo}>Añadir gasto</Text>
@@ -107,7 +204,15 @@ const styles = StyleSheet.create({
   enlace: { color: ACENTO, fontSize: 16, textAlign: 'center', marginTop: 18 },
   resumenCaja: { backgroundColor: '#fff', borderWidth: 1, borderColor: '#D4D4D0', borderRadius: 16,
     paddingVertical: 14, paddingHorizontal: 16, marginBottom: 28 },
-  resumen: { fontSize: 24, fontWeight: '700', color: '#222', textAlign: 'center' },
+  resumen: { fontSize: 22, fontWeight: '700', color: '#222', textAlign: 'center' },
   resumenEditar: { fontSize: 12, color: '#888', textAlign: 'center', marginTop: 4 },
-  ayuda: { fontSize: 15, color: '#555', textAlign: 'center' },
+  ayuda: { fontSize: 15, color: '#555', textAlign: 'center', marginBottom: 20 },
+  pregunta: { fontSize: 20, fontWeight: '700', color: '#222', marginBottom: 14 },
+  opcion: { backgroundColor: '#fff', borderWidth: 2, borderColor: ACENTO, borderRadius: 16,
+    padding: 18, marginBottom: 12 },
+  opcionTitulo: { fontSize: 20, fontWeight: '700', color: ACENTO },
+  opcionDetalle: { fontSize: 14, color: '#555', marginTop: 4 },
+  botonGrande: { backgroundColor: ACENTO, paddingVertical: 24, borderRadius: 16, marginBottom: 12 },
+  botonGrandeClaro: { borderWidth: 2, borderColor: ACENTO, paddingVertical: 22, borderRadius: 16 },
+  textoBotonClaro: { color: ACENTO, fontSize: 18, fontWeight: '600', textAlign: 'center' },
 });
