@@ -2,6 +2,9 @@ import { useRef, useState } from 'react';
 import {
   KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View,
 } from 'react-native';
+import { etiquetaTipo, fechaConDia, formatearMonto, hace, hoyISO } from '../formato';
+import { textoReparto } from '../saldo';
+import { interpretarGasto } from '../ia';
 
 // Ejemplos que se pueden tocar para llenar el campo (ayudan a saber cómo hablarle al asistente)
 const EJEMPLOS = [
@@ -10,12 +13,14 @@ const EJEMPLOS = [
   'Bencina 30 mil, 60% mío y 40% de Ana',
 ];
 
-// Ventana de chat del asistente. En este paso solo está la pantalla (los mensajes y el campo de texto):
-// las respuestas son un aviso fijo. En los pasos siguientes se conecta a la IA y se agrega el audio.
+// Ventana de chat del asistente. Envía lo que escribes a la IA (vía una función de Supabase) y muestra
+// lo que entendió. Aún no guarda el gasto (paso 3) ni recibe audio (paso 4).
 // pareja: { codigo, nombre0, nombre1, yo }. onVolver: cerrar el chat y volver a la principal.
 export default function AsistenteIA({ pareja, onVolver }) {
-  const miNombre = [pareja.nombre0, pareja.nombre1][pareja.yo];
+  const nombres = [pareja.nombre0, pareja.nombre1];
+  const miNombre = nombres[pareja.yo];
   const [texto, setTexto] = useState('');
+  const [pensando, setPensando] = useState(false); // true mientras esperamos la respuesta de la IA
   const [mensajes, setMensajes] = useState([
     {
       id: 'saludo',
@@ -31,13 +36,42 @@ export default function AsistenteIA({ pareja, onVolver }) {
     setTimeout(() => scroll.current?.scrollToEnd({ animated: true }), 50);
   }
 
-  function enviar() {
+  // Cambia el texto de un mensaje ya puesto (para convertir "Pensando…" en la respuesta)
+  function reemplazar(id, contenido) {
+    setMensajes((previos) => previos.map((m) => (m.id === id ? { ...m, texto: contenido } : m)));
+    setTimeout(() => scroll.current?.scrollToEnd({ animated: true }), 50);
+  }
+
+  // Arma el texto de lo que entendió la IA: "Entendí: $42.000 · Super · Mitad · pagó Ana · hoy"
+  function describir(g) {
+    const hoy = hoyISO();
+    const cuando = g.fecha === hoy ? 'hoy' : g.fecha === hace(1) ? 'ayer' : fechaConDia(g.fecha);
+    const linea = [`$${formatearMonto(g.monto)}`, g.descripcion, etiquetaTipo(g.tipo), `pagó ${nombres[g.pagador]}`, cuando];
+    return `Entendí: ${linea.join(' · ')}\nReparto: ${textoReparto(g, nombres)}`;
+  }
+
+  // Envía la frase a la IA y muestra lo que entendió. (Guardarlo viene en el paso 3.)
+  async function enviar() {
     const limpio = texto.trim();
-    if (limpio === '') return;
+    if (limpio === '' || pensando) return;
     agregar('yo', limpio);
     setTexto('');
-    // Paso 1: todavía no hay IA conectada. Esta respuesta se reemplaza en el paso 2.
-    setTimeout(() => agregar('ia', 'Todavía no estoy conectado a la IA. Te lo explicaré en el próximo paso.'), 400);
+    setPensando(true);
+    const idPensando = 'pensando' + Date.now();
+    setMensajes((previos) => [...previos, { id: idPensando, rol: 'ia', texto: 'Pensando…' }]);
+    try {
+      const r = await interpretarGasto({ codigo: pareja.codigo, yo: pareja.yo, texto: limpio });
+      if (!r.ok) {
+        reemplazar(idPensando, r.mensaje || 'No entendí el gasto.');
+      } else {
+        const supuestos = r.supuestos ? `\nAsumí: ${r.supuestos}` : '';
+        reemplazar(idPensando, `${describir(r.gasto)}${supuestos}\n\n(Todavía no lo guardo: eso viene en el próximo paso.)`);
+      }
+    } catch (e) {
+      reemplazar(idPensando, 'No pude hablar con la IA: ' + String(e.message).slice(0, 120));
+    } finally {
+      setPensando(false);
+    }
   }
 
   return (
@@ -87,8 +121,8 @@ export default function AsistenteIA({ pareja, onVolver }) {
           multiline
           maxLength={300}
         />
-        <Pressable style={[styles.enviar, texto.trim() === '' && { opacity: 0.4 }]} onPress={enviar}
-          disabled={texto.trim() === ''}>
+        <Pressable style={[styles.enviar, (texto.trim() === '' || pensando) && { opacity: 0.4 }]} onPress={enviar}
+          disabled={texto.trim() === '' || pensando}>
           <Text style={styles.enviarTexto}>Enviar</Text>
         </Pressable>
       </View>
