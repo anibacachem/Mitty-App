@@ -1,51 +1,67 @@
-import { useState } from 'react';
-import { SafeAreaView, Text } from 'react-native';
+import { useEffect, useState } from 'react';
+import { ActivityIndicator, SafeAreaView } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import Inicio from './src/pantallas/Inicio';
 import CrearPareja from './src/pantallas/CrearPareja';
 import UnirmeConCodigo from './src/pantallas/UnirmeConCodigo';
+import Principal from './src/pantallas/Principal';
+import { borrarSesion, guardarSesion, leerSesion } from './src/sesion';
 
 // App.js decide qué pantalla se ve según la variable "pantalla":
-// 'inicio' | 'crear' | 'unirme' (paso 3) | 'principal' (paso 4)
+// 'inicio' | 'crear' | 'unirme' | 'principal'
 export default function App() {
   const [pantalla, setPantalla] = useState('inicio');
-  const [pareja, setPareja] = useState(null); // { codigo, nombre0, nombre1 } al entrar
+  const [pareja, setPareja] = useState(null); // { codigo, nombre0, nombre1, yo }
+  const [cargando, setCargando] = useState(true); // true mientras leemos la sesión guardada
+
+  // Al abrir la app: si hay sesión guardada, entramos directo a la pantalla principal.
+  useEffect(() => {
+    leerSesion().then((sesion) => {
+      if (sesion) {
+        setPareja(sesion);
+        setPantalla('principal');
+      }
+      setCargando(false);
+    });
+  }, []);
+
+  // Entrar a la app: guarda la sesión en el teléfono y muestra la pantalla principal.
+  async function entrar(datos) {
+    await guardarSesion(datos);
+    setPareja(datos);
+    setPantalla('principal');
+  }
+
+  // Salir: borra la sesión y vuelve al inicio.
+  async function salir() {
+    await borrarSesion();
+    setPareja(null);
+    setPantalla('inicio');
+  }
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: '#FAFAF7' }}>
       <StatusBar style="dark" />
-      {pantalla === 'inicio' && (
+      {cargando && <ActivityIndicator style={{ flex: 1 }} color="#0F766E" />}
+      {!cargando && pantalla === 'inicio' && (
         <Inicio
           onCrear={() => setPantalla('crear')}
           onUnirme={() => setPantalla('unirme')}
         />
       )}
-      {pantalla === 'crear' && (
+      {!cargando && pantalla === 'crear' && (
         <CrearPareja
           onVolver={() => setPantalla('inicio')}
-          onListo={(datos) => {
-            setPareja({ ...datos, yo: 0 }); // quien crea es la primera persona (nombre0)
-            setPantalla('principal');
-          }}
+          onListo={(datos) => entrar({ ...datos, yo: 0 })} // quien crea es la primera persona
         />
       )}
-      {pantalla === 'unirme' && (
+      {!cargando && pantalla === 'unirme' && (
         <UnirmeConCodigo
           onVolver={() => setPantalla('inicio')}
-          onListo={(datos) => {
-            setPareja(datos); // ya trae "yo" (0 o 1) según lo que elegiste
-            setPantalla('principal');
-          }}
+          onListo={entrar} // ya trae "yo" (0 o 1) según lo que elegiste
         />
       )}
-      {/* Pantalla aún no creada (paso 4): mensaje temporal */}
-      {pantalla === 'principal' && (
-        <Text style={{ padding: 24 }} onPress={() => setPantalla('inicio')}>
-          Pantalla principal en construcción.
-          {pareja ? ` Código: ${pareja.codigo}. Soy: ${pareja.yo === 0 ? pareja.nombre0 : pareja.nombre1}.` : ''}
-          {' '}Toca aquí para volver.
-        </Text>
-      )}
+      {!cargando && pantalla === 'principal' && <Principal pareja={pareja} onSalir={salir} />}
     </SafeAreaView>
   );
 }
