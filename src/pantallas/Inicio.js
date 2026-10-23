@@ -7,13 +7,17 @@ import { pedir } from '../supabase';
 export default function Inicio({ onCrear, onUnirme }) {
   // 'probando' | 'listo' | 'error'
   const [conexion, setConexion] = useState('probando');
+  const [detalleError, setDetalleError] = useState(''); // motivo real del fallo
 
   // Al abrir la pantalla, hacemos una consulta mínima para comprobar URL y llave.
   // Sin el header x-pareja la base devuelve lista vacía (200): eso ya prueba que conecta.
   useEffect(() => {
     pedir('parejas?select=codigo&limit=1')
       .then(() => setConexion('listo'))
-      .catch(() => setConexion('error'));
+      .catch((e) => {
+        setConexion('error');
+        setDetalleError(String(e.message).slice(0, 200)); // corto, para que quepa
+      });
   }, []);
 
   const textoConexion = {
@@ -38,6 +42,7 @@ export default function Inicio({ onCrear, onUnirme }) {
       <Text style={[styles.conexion, conexion === 'error' && styles.conexionError]}>
         {textoConexion}
       </Text>
+      {conexion === 'error' && <Text style={styles.detalle}>{detalleError}</Text>}
     </View>
   );
 }
@@ -54,4 +59,5 @@ const styles = StyleSheet.create({
   textoSecundario: { color: ACENTO, fontSize: 18, fontWeight: '600', textAlign: 'center' },
   conexion: { marginTop: 32, textAlign: 'center', color: '#777', fontSize: 13 },
   conexionError: { color: '#B91C1C' },
+  detalle: { marginTop: 8, textAlign: 'center', color: '#B91C1C', fontSize: 11 },
 });
