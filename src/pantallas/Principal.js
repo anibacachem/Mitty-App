@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { ActivityIndicator, FlatList, Pressable, ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
 import * as Clipboard from 'expo-clipboard';
 import { cargarTodo } from '../datos';
-import { etiquetaTipo, fechaConDia, hoyISO, inicioDeMes, pesos } from '../formato';
+import { etiquetaTipo, fechaConDia, hoyISO, pesos } from '../formato';
 import { calcularBalance, describirSaldo, resultadoEnPalabras, textoReparto } from '../saldo';
 import { limitesDelMes, medirPeriodo } from '../habito';
 import DiaDeclarable from '../componentes/DiaDeclarable';
@@ -16,6 +16,8 @@ const FILTROS = [
   { id: 'invitaciones', texto: 'Invitaciones', tipos: ['invita'] },
   { id: 'pagos', texto: 'Pagos', tipos: ['pago'] },
 ];
+const MESES = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto',
+  'septiembre', 'octubre', 'noviembre', 'diciembre'];
 const ALTO_CAJA = 400; // alto de la caja de gastos: caben unos 5 gastos; el resto se ve con scroll
 
 // Pantalla principal: saludo, saldo, detalle, botón de añadir y lista de gastos del mes.
@@ -30,6 +32,7 @@ export default function Principal({ pareja, aviso, onAnadir, onRitual, onCierre,
   const [conexion, setConexion] = useState('probando'); // 'probando' | 'ok' | 'sin'
   const [abierto, setAbierto] = useState(null); // id de la fila expandida
   const [recientePrimero, setRecientePrimero] = useState(true); // orden de la lista: true = más reciente arriba
+  const [mesOffset, setMesOffset] = useState(0); // mes de la lista: 0 = actual, -1 = anterior...
   const [filtro, setFiltro] = useState('todos'); // filtro activo de la lista del mes
   const [infoAbierta, setInfoAbierta] = useState(false); // explicación del Detalle (botón i)
   const [recordatorios, setRecordatorios] = useState(false); // ¿están activados los recordatorios?
@@ -116,8 +119,17 @@ export default function Principal({ pareja, aviso, onAnadir, onRitual, onCierre,
   const declaracionHoy = declaraciones.find((d) => d.fecha === hoy);
   const esFinDeMes = hoy === limitesDelMes(hoy).hasta; // último día del mes: toca el cierre
 
-  // Solo los gastos de este mes van en la lista (el saldo usa todos)
-  const delMes = movimientos.filter((m) => m.fecha >= inicioDeMes());
+  // Mes que muestra la lista: 0 = el actual, -1 = el anterior, etc. (el saldo siempre usa todo)
+  const primeroDelMesVisto = (() => {
+    const [a, m] = hoy.split('-').map(Number);
+    const d = new Date(a, m - 1 + mesOffset, 1); // JS ajusta solo el año al pasar de enero a diciembre
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-01`;
+  })();
+  const limitesVistos = limitesDelMes(primeroDelMesVisto);
+  const esMesActual = mesOffset === 0;
+  const nombreMesVisto = `${MESES[Number(primeroDelMesVisto.slice(5, 7)) - 1]} ${primeroDelMesVisto.slice(0, 4)}`;
+  const hayMesesAnteriores = movimientos.some((m) => m.fecha < limitesVistos.desde); // sin datos antes, no hay a dónde ir
+  const delMes = movimientos.filter((m) => m.fecha >= limitesVistos.desde && m.fecha <= limitesVistos.hasta);
 
   // Filas del Detalle: yo primero. "pagos" solo aparece si ya hubo pagos entre ustedes.
   const orden = [yo, otro];
@@ -320,6 +332,28 @@ export default function Principal({ pareja, aviso, onAnadir, onRitual, onCierre,
       <Text style={styles.seccion}>
         Gastos del mes ({filtro === 'todos' ? listaMes.length : `${listaVista.length} de ${listaMes.length}`})
       </Text>
+      {/* Mes: flecha izquierda = mes anterior (si hay datos), flecha derecha = mes siguiente (hasta el actual) */}
+      <View style={styles.navMes}>
+        <Pressable
+          style={[styles.flechaMes, !hayMesesAnteriores && styles.flechaMesOff]}
+          disabled={!hayMesesAnteriores}
+          hitSlop={8}
+          onPress={() => { setMesOffset(mesOffset - 1); setAbierto(null); }}
+        >
+          <Text style={styles.flechaMesTexto}>‹</Text>
+        </Pressable>
+        <Text style={styles.navMesTexto}>
+          {nombreMesVisto[0].toUpperCase() + nombreMesVisto.slice(1)}{esMesActual ? ' · actual' : ''}
+        </Text>
+        <Pressable
+          style={[styles.flechaMes, esMesActual && styles.flechaMesOff]}
+          disabled={esMesActual}
+          hitSlop={8}
+          onPress={() => { setMesOffset(mesOffset + 1); setAbierto(null); }}
+        >
+          <Text style={styles.flechaMesTexto}>›</Text>
+        </Pressable>
+      </View>
       {/* Filtros: un toque para ver solo un tipo de movimiento */}
       {listaMes.length > 0 && (
         <View style={styles.filtros}>
@@ -343,7 +377,9 @@ export default function Principal({ pareja, aviso, onAnadir, onRitual, onCierre,
         <Text style={styles.error}>No se pudo cargar. Se reintenta solo cada 5 segundos.</Text>
       )}
       {!cargando && delMes.length === 0 && (conexion === 'ok' || movimientos.length > 0) && (
-        <Text style={styles.vacio}>Aún no hay gastos este mes. ¡Anota el primero!</Text>
+        <Text style={styles.vacio}>
+          {esMesActual ? 'Aún no hay gastos este mes. ¡Anota el primero!' : 'No hay movimientos en este mes.'}
+        </Text>
       )}
 
       {/* Caja con scroll propio: se ven unos 5 gastos (los más nuevos arriba); al bajar aparecen los más antiguos */}
@@ -452,6 +488,12 @@ const styles = StyleSheet.create({
   seccion: { fontSize: 18, fontWeight: '700', color: '#222', marginTop: 24, marginBottom: 8 },
   vacio: { color: '#777', fontSize: 15, marginTop: 8 },
   error: { color: '#B91C1C', fontSize: 14, marginTop: 8 },
+  navMes: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+    backgroundColor: '#F6F6F3', borderRadius: 12, paddingVertical: 4, paddingHorizontal: 6, marginBottom: 10 },
+  flechaMes: { width: 40, height: 34, alignItems: 'center', justifyContent: 'center' },
+  flechaMesOff: { opacity: 0.25 },
+  flechaMesTexto: { fontSize: 28, color: ACENTO, fontWeight: '700', lineHeight: 32 },
+  navMesTexto: { fontSize: 15, fontWeight: '700', color: '#222' },
   filtros: { flexDirection: 'row', flexWrap: 'wrap', marginBottom: 8 },
   chip: { borderWidth: 1.5, borderColor: ACENTO, borderRadius: 16, paddingVertical: 6,
     paddingHorizontal: 12, marginRight: 8, marginBottom: 6, backgroundColor: '#fff' },
