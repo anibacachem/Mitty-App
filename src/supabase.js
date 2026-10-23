@@ -4,6 +4,10 @@
 const URL_BASE = process.env.EXPO_PUBLIC_SUPABASE_URL;
 const LLAVE = process.env.EXPO_PUBLIC_SUPABASE_KEY;
 
+// Si Supabase no responde en 8 segundos, cortamos y lo tratamos como "sin conexión".
+// Sin esto, un wifi caído puede dejar la petición colgada mucho rato.
+const ESPERA_MAXIMA_MS = 8000;
+
 // Función única para hablar con la base de datos.
 //   ruta:         tabla y filtros, por ejemplo "parejas?codigo=eq.ABC"
 //   metodo:       GET (leer), POST (crear)
@@ -17,16 +21,25 @@ export async function pedir(ruta, { metodo = 'GET', cuerpo, codigoPareja } = {})
   };
   if (codigoPareja) headers['x-pareja'] = codigoPareja;
 
-  const respuesta = await fetch(`${URL_BASE}/rest/v1/${ruta}`, {
-    method: metodo,
-    headers,
-    body: cuerpo ? JSON.stringify(cuerpo) : undefined,
-  });
+  // AbortController permite cancelar el fetch cuando pasa el tiempo máximo
+  const controlador = new AbortController();
+  const temporizador = setTimeout(() => controlador.abort(), ESPERA_MAXIMA_MS);
 
-  // Si Supabase responde con error (401, 403, etc.), lo avisamos con el detalle.
-  if (!respuesta.ok) {
-    const detalle = await respuesta.text();
-    throw new Error(`Supabase ${respuesta.status}: ${detalle}`);
+  try {
+    const respuesta = await fetch(`${URL_BASE}/rest/v1/${ruta}`, {
+      method: metodo,
+      headers,
+      body: cuerpo ? JSON.stringify(cuerpo) : undefined,
+      signal: controlador.signal,
+    });
+
+    // Si Supabase responde con error (401, 403, etc.), lo avisamos con el detalle.
+    if (!respuesta.ok) {
+      const detalle = await respuesta.text();
+      throw new Error(`Supabase ${respuesta.status}: ${detalle}`);
+    }
+    return await respuesta.json();
+  } finally {
+    clearTimeout(temporizador); // pase lo que pase, apagamos el cronómetro
   }
-  return respuesta.json();
 }

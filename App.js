@@ -14,6 +14,14 @@ export default function App() {
   const [pantalla, setPantalla] = useState('inicio');
   const [pareja, setPareja] = useState(null); // { codigo, nombre0, nombre1, yo }
   const [cargando, setCargando] = useState(true); // true mientras leemos la sesión guardada
+  const [aviso, setAviso] = useState(''); // mensaje corto en la pantalla principal ("Gasto anotado")
+
+  // Tras guardar un gasto: volvemos a la lista y mostramos el aviso 3 segundos
+  function gastoGuardado() {
+    setPantalla('principal');
+    setAviso('Gasto anotado');
+    setTimeout(() => setAviso(''), 3000);
+  }
 
   // Al abrir la app: si hay sesión guardada, entramos directo a la pantalla principal.
   useEffect(() => {
@@ -63,13 +71,13 @@ export default function App() {
         />
       )}
       {!cargando && pantalla === 'principal' && (
-        <Principal pareja={pareja} onAnadir={() => setPantalla('anadir')} onSalir={salir} />
+        <Principal pareja={pareja} aviso={aviso} onAnadir={() => setPantalla('anadir')} onSalir={salir} />
       )}
       {!cargando && pantalla === 'anadir' && (
         <AnadirGasto
           pareja={pareja}
           onCerrar={() => setPantalla('principal')}
-          onGuardado={() => setPantalla('principal')} // al volver, Principal recarga la lista
+          onGuardado={gastoGuardado} // al volver, Principal recarga la lista y muestra el aviso
         />
       )}
     </SafeAreaView>
