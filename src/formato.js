@@ -61,6 +61,15 @@ export function etiquetaTipo(tipo) {
   return ETIQUETAS[tipo] || tipo;
 }
 
+// "2026-10-22" -> "jue 22/10". Calculamos el día de la semana con año, mes y día locales
+// (no con new Date("2026-10-22"), que usa UTC y a veces cae en el día anterior).
+const DIAS_CORTOS = ['dom', 'lun', 'mar', 'mié', 'jue', 'vie', 'sáb'];
+export function fechaConDia(iso) {
+  const [a, m, d] = iso.split('-').map(Number);
+  const dia = DIAS_CORTOS[new Date(a, m - 1, d).getDay()];
+  return `${dia} ${iso.slice(8, 10)}/${iso.slice(5, 7)}`;
+}
+
 // "42.000" o "42abc000" -> 42000. Deja solo los dígitos y los convierte a número.
 export function soloDigitos(texto) {
   return Number(texto.replace(/\D/g, '')) || 0;

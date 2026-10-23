@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { ActivityIndicator, FlatList, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import * as Clipboard from 'expo-clipboard';
 import { cargarTodo } from '../datos';
-import { etiquetaTipo, hoyISO, inicioDeMes, pesos } from '../formato';
+import { etiquetaTipo, fechaConDia, hoyISO, inicioDeMes, pesos } from '../formato';
 import { calcularBalance, describirSaldo, resultadoEnPalabras, textoReparto } from '../saldo';
 import { limitesDelMes, medirPeriodo } from '../habito';
 import DiaDeclarable from '../componentes/DiaDeclarable';
@@ -133,7 +133,7 @@ export default function Principal({ pareja, aviso, onAnadir, onRitual, onCierre,
           <View style={{ flex: 1 }}>
             <Text style={styles.filaTitulo}>{item.descripcion}</Text>
             <Text style={styles.filaDetalle}>
-              {item.tipo === 'pago' ? 'Pagó' : 'Gastó'} {nombres[item.pagador]} · {etiquetaTipo(item.tipo)} · {item.fecha.slice(8, 10)}/{item.fecha.slice(5, 7)}
+              {item.tipo === 'pago' ? 'Pagó' : 'Gastó'} {nombres[item.pagador]} · {etiquetaTipo(item.tipo)} · {fechaConDia(item.fecha)}
             </Text>
           </View>
           <Text style={styles.filaMonto}>{pesos(Number(item.monto))}</Text>
