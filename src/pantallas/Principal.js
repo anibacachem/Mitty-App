@@ -28,6 +28,7 @@ export default function Principal({ pareja, aviso, onAnadir, onRitual, onCierre,
   const [refrescando, setRefrescando] = useState(false); // al arrastrar hacia abajo
   const [conexion, setConexion] = useState('probando'); // 'probando' | 'ok' | 'sin'
   const [abierto, setAbierto] = useState(null); // id de la fila expandida
+  const [recientePrimero, setRecientePrimero] = useState(true); // orden de la lista: true = más reciente arriba
   const [filtro, setFiltro] = useState('todos'); // filtro activo de la lista del mes
   const [infoAbierta, setInfoAbierta] = useState(false); // explicación del Detalle (botón i)
   const enCurso = useRef(false); // evita pedir de nuevo si la petición anterior no terminó
@@ -111,10 +112,13 @@ export default function Principal({ pareja, aviso, onAnadir, onRitual, onCierre,
     });
   }
 
-  // Lista del mes: del más nuevo anotado al más antiguo (por la hora en que se anotó)
-  const listaMes = [...delMes].sort((a, b) =>
-    String(b.creado ?? b.fecha).localeCompare(String(a.creado ?? a.fecha))
-  );
+  // Lista del mes ordenada por la FECHA DEL GASTO (cuándo ocurrió). Si dos gastos son del mismo día,
+  // desempata la hora en que se anotaron. Por defecto, el más reciente arriba; el botón invierte el orden.
+  const listaMes = [...delMes].sort((a, b) => {
+    const porFecha = String(b.fecha).localeCompare(String(a.fecha)); // negativo = a va primero
+    const orden = porFecha !== 0 ? porFecha : String(b.creado ?? '').localeCompare(String(a.creado ?? ''));
+    return recientePrimero ? orden : -orden;
+  });
 
   // Aplicamos el filtro elegido sobre la lista del mes
   const tiposFiltro = FILTROS.find((f) => f.id === filtro).tipos;
@@ -287,6 +291,10 @@ export default function Principal({ pareja, aviso, onAnadir, onRitual, onCierre,
               <Text style={[styles.chipTexto, filtro === f.id && styles.chipTextoActivo]}>{f.texto}</Text>
             </Pressable>
           ))}
+          {/* Botón pequeño que invierte el orden de la lista */}
+          <Pressable style={styles.botonOrden} onPress={() => setRecientePrimero(!recientePrimero)}>
+            <Text style={styles.botonOrdenTexto}>{recientePrimero ? '↓ Recientes' : '↑ Antiguos'}</Text>
+          </Pressable>
         </View>
       )}
       {cargando && <ActivityIndicator color={ACENTO} style={{ marginTop: 12 }} />}
@@ -401,6 +409,8 @@ const styles = StyleSheet.create({
   filtros: { flexDirection: 'row', flexWrap: 'wrap', marginBottom: 8 },
   chip: { borderWidth: 1.5, borderColor: ACENTO, borderRadius: 16, paddingVertical: 6,
     paddingHorizontal: 12, marginRight: 8, marginBottom: 6, backgroundColor: '#fff' },
+  botonOrden: { paddingVertical: 6, paddingHorizontal: 8, marginBottom: 6, marginLeft: 'auto' },
+  botonOrdenTexto: { color: '#555', fontSize: 13, fontWeight: '600' },
   chipActivo: { backgroundColor: ACENTO },
   chipTexto: { color: ACENTO, fontSize: 14, fontWeight: '600' },
   chipTextoActivo: { color: '#fff' },

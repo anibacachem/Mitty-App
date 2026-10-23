@@ -27,3 +27,4 @@
 - style: Gasto total, Pagó/Recibió alineados y gastos del mes en caja con scroll | archivos: src/pantallas/Principal.js, bitacora.md | motivo: segunda vuelta; "Gasto" para lo anotado, "Pagó" solo para pagos entre ustedes, lista con los más nuevos arriba y 5 visibles
 - style: total (N) en Gastos del mes y explicación del Detalle con botón (i) | archivos: src/pantallas/Principal.js, bitacora.md | motivo: segunda vuelta; ahorrar espacio en la pantalla principal
 - feat: filtro de la lista del mes (Todos, Compartidos, Invitaciones, Pagos) | archivos: src/pantallas/Principal.js, bitacora.md | motivo: segunda vuelta; encontrar rápido un tipo de movimiento, el título muestra "N de M"
+- feat: lista del mes ordenada por fecha del gasto con botón para invertir | archivos: src/pantallas/Principal.js, bitacora.md | motivo: segunda vuelta; un gasto atrasado ahora aparece según el día en que ocurrió y no cuando se anotó. Exportar a Excel/PDF queda pospuesto
