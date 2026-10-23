@@ -12,3 +12,4 @@
 - style: resumen fijo arriba en cada paso del gasto | archivos: src/pantallas/AnadirGasto.js, bitacora.md | motivo: Fase 2 paso 1 (mejora), ver lo anotado y poder corregir el monto con un toque
 - feat: elegir tipo de gasto y quién pagó | archivos: src/pantallas/AnadirGasto.js, bitacora.md | motivo: Fase 2 paso 2, Mitad / Fracción / Invitación y ¿Quién pagó? con tu nombre primero
 - feat: fracción con la parte de cada uno | archivos: src/pantallas/AnadirGasto.js, bitacora.md | motivo: Fase 2 paso 3, escribes tu parte y la del otro se calcula sola
+- feat: guardar gastos en Supabase y lista del mes | archivos: App.js, src/codigo.js, src/formato.js, src/pantallas/AnadirGasto.js, src/pantallas/Principal.js, bitacora.md | motivo: Fase 2 paso 4, el gasto se guarda en movimientos y se lista con los más recientes primero

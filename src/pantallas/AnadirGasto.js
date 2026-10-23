@@ -1,6 +1,8 @@
 import { useState } from 'react';
-import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
-import { formatearMonto, soloDigitos } from '../formato';
+import { ActivityIndicator, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { formatearMonto, hoyISO, soloDigitos } from '../formato';
+import { pedir } from '../supabase';
+import { generarId } from '../codigo';
 
 // Las tres formas de repartir un gasto. "valor" es lo que luego se guarda en Supabase.
 const TIPOS = [
@@ -27,10 +29,13 @@ function Resumen({ monto, descripcion, extra, detalle, onEditar }) {
 
 // Flujo para anotar un gasto, de a un paso por pantalla:
 // monto -> tipo (mitad / fracción / invitación) -> ¿quién pagó?
-// pareja: { codigo, nombre0, nombre1, yo }. onCerrar: volver a la pantalla principal.
-export default function AnadirGasto({ pareja, onCerrar }) {
-  // 'monto' | 'tipo' | 'fraccion' (paso 3) | 'quien' | 'listo' (paso 4 guardará)
+// pareja: { codigo, nombre0, nombre1, yo }. onCerrar: cancelar. onGuardado: gasto guardado, volver.
+export default function AnadirGasto({ pareja, onCerrar, onGuardado }) {
+  // 'monto' | 'tipo' | 'fraccion' | 'quien' | 'listo' (guardando o con error)
   const [paso, setPaso] = useState('monto');
+  const [idGasto] = useState(generarId); // un id por gasto, creado una sola vez al abrir el flujo
+  const [guardando, setGuardando] = useState(false);
+  const [errorGuardar, setErrorGuardar] = useState('');
   const [textoMonto, setTextoMonto] = useState(''); // lo que se ve en el campo, con puntos
   const [descripcion, setDescripcion] = useState(''); // opcional
   const [tipo, setTipo] = useState(null); // 'mitad' | 'fraccion' | 'invita'
@@ -91,10 +96,43 @@ export default function AnadirGasto({ pareja, onCerrar }) {
     setPaso(valor === 'fraccion' ? 'fraccion' : 'quien');
   }
 
-  // Al elegir quién pagó, el gasto queda completo.
+  // Al elegir quién pagó, el gasto queda completo y se guarda de inmediato (sin botón extra).
   function elegirPagador(indice) {
     setPagador(indice);
+    guardar(indice);
+  }
+
+  // Guarda el gasto como una fila nueva en la tabla "movimientos" de Supabase.
+  async function guardar(indicePagador) {
     setPaso('listo');
+    setGuardando(true);
+    setErrorGuardar('');
+    const fila = {
+      id: idGasto,
+      codigo: pareja.codigo,
+      descripcion: descripcion.trim() || 'Gasto', // la columna no admite vacío
+      monto,
+      pagador: indicePagador, // 0 o 1
+      tipo,                   // 'mitad' | 'fraccion' | 'invita'
+      fecha: hoyISO(),        // el día en que ocurrió el gasto (hoy)
+    };
+    // Solo la fracción guarda las dos partes; mitad e invitación no las necesitan
+    if (tipo === 'fraccion') {
+      fila.parte0 = partes[0];
+      fila.parte1 = partes[1];
+    }
+    try {
+      await pedir('movimientos', { metodo: 'POST', cuerpo: fila, codigoPareja: pareja.codigo });
+      onGuardado(); // listo: volvemos a la pantalla principal
+    } catch (e) {
+      // 23505 = "este id ya existe": significa que un intento anterior sí se guardó. Lo damos por bueno.
+      if (String(e.message).includes('23505')) {
+        onGuardado();
+        return;
+      }
+      setErrorGuardar(String(e.message).slice(0, 200));
+      setGuardando(false);
+    }
   }
 
   // Encabezado común de los pasos después del monto: el resumen siempre visible
@@ -196,18 +234,30 @@ export default function AnadirGasto({ pareja, onCerrar }) {
     );
   }
 
-  // ---- Paso: gasto completo (el Paso 4 lo guardará en Supabase) ----
+  // ---- Paso: guardando (o con error y opción de reintentar) ----
   if (paso === 'listo') {
     return (
       <View style={styles.contenedor}>
         {resumen}
-        <Text style={styles.ayuda}>Gasto completo. Guardarlo en la base de datos se agrega en el Paso 4.</Text>
-        <Pressable onPress={() => setPaso('quien')}>
-          <Text style={styles.enlace}>Cambiar quién pagó</Text>
-        </Pressable>
-        <Pressable onPress={onCerrar}>
-          <Text style={styles.enlace}>Cancelar</Text>
-        </Pressable>
+        {guardando ? (
+          <>
+            <ActivityIndicator color={ACENTO} size="large" />
+            <Text style={styles.ayuda}>Guardando…</Text>
+          </>
+        ) : (
+          <>
+            <Text style={styles.errorTexto}>No se pudo guardar: {errorGuardar}</Text>
+            <Pressable style={[styles.boton, { marginTop: 20 }]} onPress={() => guardar(pagador)}>
+              <Text style={styles.textoBoton}>Reintentar</Text>
+            </Pressable>
+            <Pressable onPress={() => setPaso('quien')}>
+              <Text style={styles.enlace}>Cambiar quién pagó</Text>
+            </Pressable>
+            <Pressable onPress={onCerrar}>
+              <Text style={styles.enlace}>Cancelar</Text>
+            </Pressable>
+          </>
+        )}
       </View>
     );
   }

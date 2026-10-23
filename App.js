@@ -66,7 +66,11 @@ export default function App() {
         <Principal pareja={pareja} onAnadir={() => setPantalla('anadir')} onSalir={salir} />
       )}
       {!cargando && pantalla === 'anadir' && (
-        <AnadirGasto pareja={pareja} onCerrar={() => setPantalla('principal')} />
+        <AnadirGasto
+          pareja={pareja}
+          onCerrar={() => setPantalla('principal')}
+          onGuardado={() => setPantalla('principal')} // al volver, Principal recarga la lista
+        />
       )}
     </SafeAreaView>
   );
