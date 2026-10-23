@@ -1,5 +1,7 @@
-import { useState } from 'react';
-import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { useRef, useState } from 'react';
+import {
+  ActivityIndicator, Keyboard, PanResponder, Pressable, ScrollView, StyleSheet, Text, TextInput, View,
+} from 'react-native';
 import { fechaDeDiaMes, formatearMonto, hace, hoyISO, soloDigitos } from '../formato';
 import { pedir } from '../supabase';
 import { generarId } from '../codigo';
@@ -27,6 +29,70 @@ function Resumen({ monto, descripcion, extra, detalle, onEditar }) {
   );
 }
 
+// Barra deslizable para repartir un gasto en porcentajes. A la izquierda va tu nombre y a la derecha el del otro.
+// Arrastra (o toca) la perilla: hacia la derecha, más para ti; hacia la izquierda, más para el otro.
+//   pct: porcentaje de quien va a la izquierda (0 a 100). montoIzq / montoDer: lo que le toca a cada uno en $.
+//   onCambio(p): avisa el nuevo porcentaje. onArrastre(bool): avisa si el dedo está arrastrando
+//   (para frenar el scroll de la pantalla mientras tanto).
+function BarraReparto({ pct, montoIzq, montoDer, nombreIzq, nombreDer, onCambio, onArrastre }) {
+  const ancho = useRef(1); // ancho real de la barra, se mide al dibujarla
+  // Guardamos las funciones más recientes en "refs": el gesto se crea una sola vez y así nunca usa versiones viejas
+  const alCambiar = useRef(onCambio);
+  alCambiar.current = onCambio;
+  const alArrastrar = useRef(onArrastre);
+  alArrastrar.current = onArrastre;
+
+  // Posición del dedo dentro de la barra (en píxeles) -> porcentaje entero entre 0 y 100
+  const aPorcentaje = (x) => Math.max(0, Math.min(100, Math.round((x / ancho.current) * 100)));
+
+  const gesto = useRef(
+    PanResponder.create({
+      onStartShouldSetPanResponder: () => true,
+      onMoveShouldSetPanResponder: () => true,
+      onPanResponderTerminationRequest: () => false, // nadie nos quita el gesto a mitad de arrastre
+      onPanResponderGrant: (e) => {
+        alArrastrar.current(true);
+        alCambiar.current(aPorcentaje(e.nativeEvent.locationX)); // un toque también mueve la perilla
+      },
+      onPanResponderMove: (e) => alCambiar.current(aPorcentaje(e.nativeEvent.locationX)),
+      onPanResponderRelease: () => alArrastrar.current(false),
+      onPanResponderTerminate: () => alArrastrar.current(false),
+    })
+  ).current;
+
+  return (
+    <View style={styles.repartoCaja}>
+      <View style={styles.repartoFila}>
+        <Text style={styles.repartoNombre}>{nombreIzq}</Text>
+        <Text style={[styles.repartoNombre, { textAlign: 'right' }]}>{nombreDer}</Text>
+      </View>
+
+      {/* Zona táctil. Los hijos tienen pointerEvents="none" para que la posición del dedo se mida sobre la barra */}
+      <View
+        style={styles.pistaToque}
+        onLayout={(e) => { ancho.current = e.nativeEvent.layout.width || 1; }}
+        {...gesto.panHandlers}
+      >
+        <View pointerEvents="none" style={styles.pistaFondo}>
+          <View style={[styles.pistaIzq, { width: `${pct}%` }]} />
+        </View>
+        <View pointerEvents="none" style={[styles.perilla, { left: `${pct}%` }]} />
+      </View>
+
+      <View style={styles.repartoFila}>
+        <View>
+          <Text style={styles.repartoPct}>{pct}%</Text>
+          <Text style={styles.repartoMonto}>${formatearMonto(montoIzq)}</Text>
+        </View>
+        <View style={{ alignItems: 'flex-end' }}>
+          <Text style={styles.repartoPct}>{100 - pct}%</Text>
+          <Text style={styles.repartoMonto}>${formatearMonto(montoDer)}</Text>
+        </View>
+      </View>
+    </View>
+  );
+}
+
 // Flujo para anotar un gasto, de a un paso por pantalla:
 // monto -> tipo (mitad / fracción / invitación) -> ¿quién pagó?
 // pareja: { codigo, nombre0, nombre1, yo }. onCerrar: cancelar. onGuardado: gasto guardado, volver.
@@ -42,6 +108,9 @@ export default function AnadirGasto({ pareja, onCerrar, onGuardado }) {
   const [pagador, setPagador] = useState(null); // 0 o 1, igual que en la base de datos
   const [textoParte, setTextoParte] = useState(''); // lo que escribes: la parte tuya en la fracción
   const [partes, setPartes] = useState(null); // [parte de nombre0, parte de nombre1] ya calculadas
+  const [modoFraccion, setModoFraccion] = useState('cantidad'); // 'cantidad' ($) o 'porcentaje' (barra)
+  const [pct, setPct] = useState(50); // porcentaje que le toca a quien va a la izquierda de la barra (yo)
+  const [arrastrando, setArrastrando] = useState(false); // mientras mueves la barra, la pantalla no hace scroll
 
   const [cuando, setCuando] = useState('hoy'); // 'hoy' | 'ayer' | 'otro'
   const [dia, setDia] = useState(''); // solo se usa con "Otro día"
@@ -85,6 +154,32 @@ export default function AnadirGasto({ pareja, onCerrar, onGuardado }) {
     setTextoParte(digitos === '' ? '' : formatearMonto(Number(digitos)));
   }
 
+  // Barra de porcentaje: al moverla, tu parte pasa a ser ese % del total (en pesos enteros)
+  // y la del otro sigue siendo el resto, así las dos partes siempre suman el total.
+  function cambiarPorcentaje(p) {
+    setPct(p);
+    setTextoParte(formatearMonto(Math.round((monto * p) / 100)));
+  }
+
+  // Abrir la barra: si ya escribiste un monto, la perilla parte donde corresponde; si no, en 50%
+  function abrirPorcentaje() {
+    Keyboard.dismiss();
+    setModoFraccion('porcentaje');
+    if (textoParte === '') cambiarPorcentaje(50);
+    else setPct(Math.max(0, Math.min(100, Math.round((miParte / monto) * 100))));
+  }
+
+  // Abrir la cantidad en $ (el teclado se abre solo al aparecer el campo)
+  function abrirCantidad() {
+    setModoFraccion('cantidad');
+  }
+
+  // "Todo es del otro": tu parte es 0 (y la barra también se va a 0%)
+  function todoDelOtro() {
+    setTextoParte('0');
+    setPct(0);
+  }
+
   // Al continuar, ordenamos las partes según nombre0 y nombre1 (como las guarda la base de datos)
   function continuarFraccion() {
     const resultado = [0, 0];
@@ -106,6 +201,8 @@ export default function AnadirGasto({ pareja, onCerrar, onGuardado }) {
     setPagador(null);
     setPartes(null);
     setTextoParte('');
+    setModoFraccion('cantidad');
+    setPct(50);
     setPaso(valor === 'fraccion' ? 'fraccion' : 'quien');
   }
 
@@ -176,41 +273,76 @@ export default function AnadirGasto({ pareja, onCerrar, onGuardado }) {
   // ---- Paso: montos de la fracción. Escribes lo tuyo y el resto se calcula solo ----
   if (paso === 'fraccion') {
     return (
-      <View style={styles.contenedor}>
+      // ScrollView: con el teclado abierto o la barra desplegada, todo sigue alcanzable.
+      // Mientras arrastras la barra se apaga el scroll para que la pantalla no se mueva.
+      <ScrollView style={{ flex: 1, backgroundColor: '#FAFAF7' }} contentContainerStyle={styles.scroll}
+        keyboardShouldPersistTaps="handled" scrollEnabled={!arrastrando}>
         {resumen}
-        <Text style={styles.pregunta}>¿Cuánto le toca a {miNombre}?</Text>
-        <View style={styles.filaMonto}>
-          <Text style={styles.signo}>$</Text>
-          <TextInput
-            style={styles.monto}
-            value={textoParte}
-            onChangeText={cambiarParte}
-            placeholder="0"
-            keyboardType="number-pad"
-            autoFocus
-            maxLength={11}
-          />
-        </View>
+        <Text style={styles.pregunta}>¿Cómo se reparte entre ustedes?</Text>
 
-        {/* Atajo para "era del otro": tu parte es 0 y la otra persona debe todo */}
-        <Pressable onPress={() => setTextoParte('0')}>
+        {/* Opción 1: porcentaje. Al tocarla se despliega la barra, justo arriba del botón de cantidad */}
+        <Pressable
+          style={[styles.modoBoton, modoFraccion === 'porcentaje' && styles.modoBotonActivo]}
+          onPress={abrirPorcentaje}
+        >
+          <Text style={[styles.modoTexto, modoFraccion === 'porcentaje' && styles.modoTextoActivo]}>Porcentaje %</Text>
+        </Pressable>
+        {modoFraccion === 'porcentaje' && (
+          <BarraReparto
+            pct={pct}
+            montoIzq={miParte}
+            montoDer={parteOtro}
+            nombreIzq={`${miNombre} (tú)`}
+            nombreDer={otroNombre}
+            onCambio={cambiarPorcentaje}
+            onArrastre={setArrastrando}
+          />
+        )}
+
+        {/* Opción 2: cantidad en pesos (lo de siempre) */}
+        <Pressable
+          style={[styles.modoBoton, modoFraccion === 'cantidad' && styles.modoBotonActivo]}
+          onPress={abrirCantidad}
+        >
+          <Text style={[styles.modoTexto, modoFraccion === 'cantidad' && styles.modoTextoActivo]}>Cantidad $</Text>
+        </Pressable>
+        {modoFraccion === 'cantidad' && (
+          <>
+            <Text style={styles.etiqueta}>¿Cuánto le toca a {miNombre}?</Text>
+            <View style={styles.filaMonto}>
+              <Text style={styles.signo}>$</Text>
+              <TextInput
+                style={styles.monto}
+                value={textoParte}
+                onChangeText={cambiarParte}
+                placeholder="0"
+                keyboardType="number-pad"
+                autoFocus
+                maxLength={11}
+              />
+            </View>
+
+            {/* La parte del otro se calcula sola: total menos lo tuyo */}
+            {textoParte !== '' && (
+              <View style={styles.resto}>
+                {parteValida ? (
+                  <Text style={styles.restoTexto}>
+                    A {otroNombre} le toca <Text style={styles.restoMonto}>${formatearMonto(parteOtro)}</Text>
+                  </Text>
+                ) : (
+                  <Text style={styles.errorTexto}>
+                    No puede ser más que el total (${formatearMonto(monto)}).
+                  </Text>
+                )}
+              </View>
+            )}
+          </>
+        )}
+
+        {/* Atajo para "era del otro": tu parte es 0 y la otra persona debe todo (sirve en las dos opciones) */}
+        <Pressable onPress={todoDelOtro}>
           <Text style={styles.atajo}>Todo es de {otroNombre}</Text>
         </Pressable>
-
-        {/* La parte del otro se calcula sola: total menos lo tuyo */}
-        {textoParte !== '' && (
-          <View style={styles.resto}>
-            {parteValida ? (
-              <Text style={styles.restoTexto}>
-                A {otroNombre} le toca <Text style={styles.restoMonto}>${formatearMonto(parteOtro)}</Text>
-              </Text>
-            ) : (
-              <Text style={styles.errorTexto}>
-                No puede ser más que el total (${formatearMonto(monto)}).
-              </Text>
-            )}
-          </View>
-        )}
 
         <Pressable
           style={[styles.boton, !parteValida && styles.botonApagado]}
@@ -222,7 +354,7 @@ export default function AnadirGasto({ pareja, onCerrar, onGuardado }) {
         <Pressable onPress={() => setPaso('tipo')}>
           <Text style={styles.enlace}>Atrás</Text>
         </Pressable>
-      </View>
+      </ScrollView>
     );
   }
 
@@ -378,6 +510,24 @@ const styles = StyleSheet.create({
   resumenEditar: { fontSize: 12, color: '#888', textAlign: 'center', marginTop: 4 },
   resumenDetalle: { fontSize: 14, color: ACENTO, textAlign: 'center', marginTop: 6, fontWeight: '600' },
   atajo: { color: ACENTO, fontSize: 15, fontWeight: '600', marginBottom: 16 },
+  // Botones de modo (Porcentaje % / Cantidad $)
+  modoBoton: { borderWidth: 2, borderColor: ACENTO, borderRadius: 14, paddingVertical: 14, marginBottom: 12,
+    backgroundColor: '#fff' },
+  modoBotonActivo: { backgroundColor: ACENTO },
+  modoTexto: { color: ACENTO, fontSize: 17, fontWeight: '700', textAlign: 'center' },
+  modoTextoActivo: { color: '#fff' },
+  // Barra de reparto
+  repartoCaja: { backgroundColor: '#fff', borderWidth: 1, borderColor: '#D4D4D0', borderRadius: 16,
+    padding: 16, marginBottom: 14 },
+  repartoFila: { flexDirection: 'row', justifyContent: 'space-between' },
+  repartoNombre: { flex: 1, fontSize: 16, fontWeight: '700', color: '#222' },
+  repartoPct: { fontSize: 22, fontWeight: '700', color: ACENTO },
+  repartoMonto: { fontSize: 15, color: '#444', marginTop: 2 },
+  pistaToque: { height: 48, justifyContent: 'center', marginVertical: 6 },
+  pistaFondo: { height: 14, borderRadius: 7, backgroundColor: '#CFE5E1', overflow: 'hidden' },
+  pistaIzq: { height: 14, backgroundColor: ACENTO },
+  perilla: { position: 'absolute', top: 10, width: 28, height: 28, borderRadius: 14, marginLeft: -14,
+    backgroundColor: '#fff', borderWidth: 3, borderColor: ACENTO },
   resto: { backgroundColor: '#ECF6F4', borderRadius: 12, padding: 14, marginBottom: 20 },
   restoTexto: { fontSize: 16, color: '#333', textAlign: 'center' },
   restoMonto: { fontWeight: '700', color: ACENTO },
