@@ -201,8 +201,8 @@ export default function CierreMes({ pareja, onVolver }) {
               )}
             </Pressable>
             <Text style={styles.nota}>
-              Lo paga {nombres[deuda.deudor]} a {nombres[deuda.deudor === 0 ? 1 : 0]}. Se pide confirmación antes de
-              registrar.
+              Se registra como pago de {nombres[deuda.deudor]} a {nombres[deuda.deudor === 0 ? 1 : 0]}, aunque
+              lo toque cualquiera de los dos. Se pide confirmación antes de registrar.
             </Text>
           </>
         ) : (

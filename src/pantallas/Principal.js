@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { ActivityIndicator, FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
 import * as Clipboard from 'expo-clipboard';
 import { cargarTodo } from '../datos';
-import { conSigno, etiquetaTipo, hoyISO, inicioDeMes, pesos } from '../formato';
+import { etiquetaTipo, hoyISO, inicioDeMes, pesos } from '../formato';
 import { calcularBalance, describirSaldo, resultadoEnPalabras, textoReparto } from '../saldo';
 import { limitesDelMes, medirPeriodo } from '../habito';
 import DiaDeclarable from '../componentes/DiaDeclarable';
@@ -91,7 +91,11 @@ export default function Principal({ pareja, aviso, onAnadir, onRitual, onCierre,
   if (hayPagos) {
     filasDetalle.push({
       texto: 'Pagos entre ustedes',
-      valores: orden.map((i) => conSigno(balance.pagosEnviados[i] - balance.pagosRecibidos[i])),
+      // En palabras: quien envió dinero "Pagó", quien lo recibió "Recibió"
+      valores: orden.map((i) => {
+        const dif = balance.pagosEnviados[i] - balance.pagosRecibidos[i];
+        return dif >= 0.5 ? `Pagó ${pesos(dif)}` : dif <= -0.5 ? `Recibió ${pesos(-dif)}` : '—';
+      }),
     });
   }
 
