@@ -24,13 +24,15 @@ Limitación: el indicador mide cuánto se anota, no si se anota el mismo día, y
 
 1. Crear la pareja con un código (se puede copiar) y unirse desde otro teléfono.
 2. Anotar un gasto en pocos toques: monto, cómo se reparte (mitad, fracción o invitación), quién pagó y la fecha (hoy, ayer u otro día).
-3. Lista y saldo compartidos, sincronizados entre los dos teléfonos cada 5 segundos, con el detalle de cuánto pagó y cuánto le tocaba a cada uno.
+3. Lista y saldo compartidos, sincronizados entre los dos teléfonos cada 5 segundos. El saldo dice "Al día", "Le debes $X a Y" o "Y te debe $X". El detalle muestra el gasto total y lo que le correspondía a cada uno, los pagos entre ustedes y el resultado en palabras ("Debe" / "Le deben"); el botón (i) explica cada concepto.
+   Los gastos del mes van en una caja con scroll propio (unos 5 visibles), con el total (N), filtros (Todos, Compartidos, Invitaciones, Pagos) y orden por fecha del gasto, con un botón para invertirlo. En la lista, "Gastó" es un gasto anotado y "Pagó" es un pago entre ustedes.
 4. Ritual de domingo: un mensaje amable, el conteo de gastos anotados de la semana y del mes, y la posibilidad de declarar los días en que hubo menos gastos.
-5. Cierre de mes: resumen del mes y un botón para registrar el pago del que debe, con confirmación, que deja el saldo en cero.
+5. Cierre de mes: resumen del mes y un botón para registrar el pago del que debe, con confirmación, que deja el saldo en cero. El pago se registra siempre a nombre de quien debe, lo toque cualquiera de los dos.
 
 ## Qué dejamos fuera, y por qué
 
 - **Conexión con bancos:** no hace falta para probar el hábito y exige datos sensibles.
+- **Exportar a Excel o PDF:** pospuesto; el prototipo se enfoca en el hábito de anotar.
 - **Edición de gastos:** no es necesaria para probar el hábito.
 - **Inicio de sesión:** el acceso es por código de pareja, suficiente para un prototipo. Con datos reales haría falta iniciar sesión.
 - **Varias parejas por cuenta:** no cambia la hipótesis que queremos probar.
