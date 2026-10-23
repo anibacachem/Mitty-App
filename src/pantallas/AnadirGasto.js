@@ -11,13 +11,15 @@ const TIPOS = [
 
 // Resumen fijo que aparece arriba en cada paso: "$42.000 · super · Mitad".
 // Al tocarlo, vuelves a editar el monto.
-function Resumen({ monto, descripcion, extra, onEditar }) {
+// "detalle" es una línea chica opcional (en Fracción: lo que le toca a cada uno).
+function Resumen({ monto, descripcion, extra, detalle, onEditar }) {
   const partes = [`$${formatearMonto(monto)}`];
   if (descripcion.trim()) partes.push(descripcion.trim());
   extra.forEach((e) => partes.push(e)); // lo elegido: tipo, quién pagó
   return (
     <Pressable style={styles.resumenCaja} onPress={onEditar}>
       <Text style={styles.resumen}>{partes.join(' · ')}</Text>
+      {detalle ? <Text style={styles.resumenDetalle}>{detalle}</Text> : null}
       <Text style={styles.resumenEditar}>Toca para cambiar el monto</Text>
     </Pressable>
   );
@@ -33,6 +35,8 @@ export default function AnadirGasto({ pareja, onCerrar }) {
   const [descripcion, setDescripcion] = useState(''); // opcional
   const [tipo, setTipo] = useState(null); // 'mitad' | 'fraccion' | 'invita'
   const [pagador, setPagador] = useState(null); // 0 o 1, igual que en la base de datos
+  const [textoParte, setTextoParte] = useState(''); // lo que escribes: la parte tuya en la fracción
+  const [partes, setPartes] = useState(null); // [parte de nombre0, parte de nombre1] ya calculadas
 
   const monto = soloDigitos(textoMonto); // el número real: 42000
 
@@ -52,10 +56,38 @@ export default function AnadirGasto({ pareja, onCerrar }) {
     setTextoMonto(numero === 0 ? '' : formatearMonto(numero));
   }
 
+  // Fracción: lo que escribes es TU parte; la del otro es el resto (monto - tu parte).
+  // Aquí el texto vacío es "sin escribir" y "0" es un valor válido (todo es del otro).
+  const miParte = soloDigitos(textoParte);
+  const parteOtro = monto - miParte;
+  const parteValida = textoParte !== '' && miParte <= monto; // no puedes pasarte del total
+
+  function cambiarParte(texto) {
+    const digitos = texto.replace(/\D/g, '');
+    setTextoParte(digitos === '' ? '' : formatearMonto(Number(digitos)));
+  }
+
+  // Al continuar, ordenamos las partes según nombre0 y nombre1 (como las guarda la base de datos)
+  function continuarFraccion() {
+    const resultado = [0, 0];
+    resultado[pareja.yo] = miParte;
+    resultado[pareja.yo === 0 ? 1 : 0] = parteOtro;
+    setPartes(resultado);
+    setPaso('quien');
+  }
+
+  // Línea chica para el resumen: "Ana $12.000 · Luis $30.000"
+  const detalleFraccion =
+    tipo === 'fraccion' && partes
+      ? `${nombres[0]} $${formatearMonto(partes[0])} · ${nombres[1]} $${formatearMonto(partes[1])}`
+      : '';
+
   // Al elegir el tipo: Mitad e Invitación saltan a "¿quién pagó?"; Fracción pide montos antes.
   function elegirTipo(valor) {
     setTipo(valor);
     setPagador(null);
+    setPartes(null);
+    setTextoParte('');
     setPaso(valor === 'fraccion' ? 'fraccion' : 'quien');
   }
 
@@ -67,7 +99,8 @@ export default function AnadirGasto({ pareja, onCerrar }) {
 
   // Encabezado común de los pasos después del monto: el resumen siempre visible
   const resumen = (
-    <Resumen monto={monto} descripcion={descripcion} extra={extra} onEditar={() => setPaso('monto')} />
+    <Resumen monto={monto} descripcion={descripcion} extra={extra} detalle={detalleFraccion}
+      onEditar={() => setPaso('monto')} />
   );
 
   // ---- Paso: tipo de gasto ----
@@ -89,14 +122,51 @@ export default function AnadirGasto({ pareja, onCerrar }) {
     );
   }
 
-  // ---- Paso: montos de la fracción (se construye en el Paso 3) ----
+  // ---- Paso: montos de la fracción. Escribes lo tuyo y el resto se calcula solo ----
   if (paso === 'fraccion') {
     return (
       <View style={styles.contenedor}>
         {resumen}
-        <Text style={styles.ayuda}>Los montos por persona se agregan en el Paso 3.</Text>
-        <Pressable style={styles.boton} onPress={() => setPaso('quien')}>
-          <Text style={styles.textoBoton}>Seguir (temporal)</Text>
+        <Text style={styles.pregunta}>¿Cuánto le toca a {miNombre}?</Text>
+        <View style={styles.filaMonto}>
+          <Text style={styles.signo}>$</Text>
+          <TextInput
+            style={styles.monto}
+            value={textoParte}
+            onChangeText={cambiarParte}
+            placeholder="0"
+            keyboardType="number-pad"
+            autoFocus
+            maxLength={11}
+          />
+        </View>
+
+        {/* Atajo para "era del otro": tu parte es 0 y la otra persona debe todo */}
+        <Pressable onPress={() => setTextoParte('0')}>
+          <Text style={styles.atajo}>Todo es de {otroNombre}</Text>
+        </Pressable>
+
+        {/* La parte del otro se calcula sola: total menos lo tuyo */}
+        {textoParte !== '' && (
+          <View style={styles.resto}>
+            {parteValida ? (
+              <Text style={styles.restoTexto}>
+                A {otroNombre} le toca <Text style={styles.restoMonto}>${formatearMonto(parteOtro)}</Text>
+              </Text>
+            ) : (
+              <Text style={styles.errorTexto}>
+                No puede ser más que el total (${formatearMonto(monto)}).
+              </Text>
+            )}
+          </View>
+        )}
+
+        <Pressable
+          style={[styles.boton, !parteValida && styles.botonApagado]}
+          onPress={continuarFraccion}
+          disabled={!parteValida}
+        >
+          <Text style={styles.textoBoton}>Continuar</Text>
         </Pressable>
         <Pressable onPress={() => setPaso('tipo')}>
           <Text style={styles.enlace}>Atrás</Text>
@@ -206,6 +276,12 @@ const styles = StyleSheet.create({
     paddingVertical: 14, paddingHorizontal: 16, marginBottom: 28 },
   resumen: { fontSize: 22, fontWeight: '700', color: '#222', textAlign: 'center' },
   resumenEditar: { fontSize: 12, color: '#888', textAlign: 'center', marginTop: 4 },
+  resumenDetalle: { fontSize: 14, color: ACENTO, textAlign: 'center', marginTop: 6, fontWeight: '600' },
+  atajo: { color: ACENTO, fontSize: 15, fontWeight: '600', marginBottom: 16 },
+  resto: { backgroundColor: '#ECF6F4', borderRadius: 12, padding: 14, marginBottom: 20 },
+  restoTexto: { fontSize: 16, color: '#333', textAlign: 'center' },
+  restoMonto: { fontWeight: '700', color: ACENTO },
+  errorTexto: { fontSize: 15, color: '#B91C1C', textAlign: 'center' },
   ayuda: { fontSize: 15, color: '#555', textAlign: 'center', marginBottom: 20 },
   pregunta: { fontSize: 20, fontWeight: '700', color: '#222', marginBottom: 14 },
   opcion: { backgroundColor: '#fff', borderWidth: 2, borderColor: ACENTO, borderRadius: 16,

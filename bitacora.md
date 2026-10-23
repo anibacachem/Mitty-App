@@ -11,3 +11,4 @@
 - feat: botón Añadir gasto y paso de monto | archivos: App.js, src/formato.js, src/pantallas/AnadirGasto.js, src/pantallas/Principal.js, bitacora.md | motivo: Fase 2 paso 1, flujo guiado (monto con puntos de miles y descripción opcional)
 - style: resumen fijo arriba en cada paso del gasto | archivos: src/pantallas/AnadirGasto.js, bitacora.md | motivo: Fase 2 paso 1 (mejora), ver lo anotado y poder corregir el monto con un toque
 - feat: elegir tipo de gasto y quién pagó | archivos: src/pantallas/AnadirGasto.js, bitacora.md | motivo: Fase 2 paso 2, Mitad / Fracción / Invitación y ¿Quién pagó? con tu nombre primero
+- feat: fracción con la parte de cada uno | archivos: src/pantallas/AnadirGasto.js, bitacora.md | motivo: Fase 2 paso 3, escribes tu parte y la del otro se calcula sola
