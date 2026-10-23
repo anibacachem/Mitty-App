@@ -22,7 +22,7 @@ const ALTO_CAJA = 400; // alto de la caja de gastos: caben unos 5 gastos; el res
 
 // Pantalla principal: saludo, saldo, detalle, botón de añadir y lista de gastos del mes.
 // pareja: { codigo, nombre0, nombre1, yo }. aviso: mensaje corto arriba (ej. "Gasto anotado").
-export default function Principal({ pareja, aviso, onAnadir, onRitual, onCierre, onSalir }) {
+export default function Principal({ pareja, aviso, onAnadir, onAsistente, onRitual, onCierre, onSalir }) {
   const [copiado, setCopiado] = useState(false);
   const [movimientos, setMovimientos] = useState([]);
   const [declaraciones, setDeclaraciones] = useState([]); // días declarados con menos de 3 gastos
@@ -215,6 +215,11 @@ export default function Principal({ pareja, aviso, onAnadir, onRitual, onCierre,
 
       <Pressable style={styles.botonAnadir} onPress={onAnadir}>
         <Text style={styles.textoAnadir}>+ Añadir gasto</Text>
+      </Pressable>
+
+      {/* Asistente IA: abre el chat para anotar un gasto escribiendo o hablando */}
+      <Pressable style={styles.botonAsistente} onPress={onAsistente}>
+        <Text style={styles.textoAsistente}>Asistente IA · dilo y lo anoto</Text>
       </Pressable>
 
       {/* Hoy: gastos compartidos anotados contra la meta, con punto por gasto y opción de declarar menos */}
@@ -448,6 +453,9 @@ const styles = StyleSheet.create({
   estadoTexto: { fontSize: 12, color: '#777' },
   botonAnadir: { backgroundColor: ACENTO, paddingVertical: 20, borderRadius: 16, marginTop: 16 },
   textoAnadir: { color: '#fff', fontSize: 20, fontWeight: '700', textAlign: 'center' },
+  botonAsistente: { backgroundColor: '#D7EEEA', paddingVertical: 14, borderRadius: 16, marginTop: 10,
+    borderWidth: 1.5, borderColor: ACENTO },
+  textoAsistente: { color: ACENTO, fontSize: 16, fontWeight: '700', textAlign: 'center' },
   tarjetaHoy: { backgroundColor: '#fff', borderRadius: 16, padding: 16, borderWidth: 1,
     borderColor: '#E5E5E0', marginTop: 12 },
   hoyFila: { flexDirection: 'row', alignItems: 'center' },

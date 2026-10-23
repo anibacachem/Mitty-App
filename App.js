@@ -8,10 +8,11 @@ import Principal from './src/pantallas/Principal';
 import AnadirGasto from './src/pantallas/AnadirGasto';
 import Ritual from './src/pantallas/Ritual';
 import CierreMes from './src/pantallas/CierreMes';
+import AsistenteIA from './src/pantallas/AsistenteIA';
 import { borrarSesion, guardarSesion, leerSesion } from './src/sesion';
 
 // App.js decide qué pantalla se ve según la variable "pantalla":
-// 'inicio' | 'crear' | 'unirme' | 'principal' | 'anadir' | 'ritual' | 'cierre'
+// 'inicio' | 'crear' | 'unirme' | 'principal' | 'anadir' | 'ritual' | 'cierre' | 'asistente'
 export default function App() {
   const [pantalla, setPantalla] = useState('inicio');
   const [pareja, setPareja] = useState(null); // { codigo, nombre0, nombre1, yo }
@@ -79,8 +80,12 @@ export default function App() {
           onAnadir={() => setPantalla('anadir')}
           onRitual={() => setPantalla('ritual')}
           onCierre={() => setPantalla('cierre')}
+          onAsistente={() => setPantalla('asistente')}
           onSalir={salir}
         />
+      )}
+      {!cargando && pantalla === 'asistente' && (
+        <AsistenteIA pareja={pareja} onVolver={() => setPantalla('principal')} />
       )}
       {!cargando && pantalla === 'cierre' && (
         <CierreMes pareja={pareja} onVolver={() => setPantalla('principal')} />
