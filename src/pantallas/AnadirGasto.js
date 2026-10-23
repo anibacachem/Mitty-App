@@ -2,6 +2,20 @@ import { useState } from 'react';
 import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { formatearMonto, soloDigitos } from '../formato';
 
+// Resumen fijo que aparece arriba en cada paso: "$42.000 · super".
+// "extra" recibirá después lo que ya elegiste (Mitad, Pagó Ana...). Al tocarlo, vuelves a editar el monto.
+function Resumen({ monto, descripcion, extra, onEditar }) {
+  const partes = [`$${formatearMonto(monto)}`];
+  if (descripcion.trim()) partes.push(descripcion.trim());
+  if (extra) partes.push(extra);
+  return (
+    <Pressable style={styles.resumenCaja} onPress={onEditar}>
+      <Text style={styles.resumen}>{partes.join(' · ')}</Text>
+      <Text style={styles.resumenEditar}>Toca para cambiar el monto</Text>
+    </Pressable>
+  );
+}
+
 // Flujo para anotar un gasto, de a un paso por pantalla:
 // monto -> tipo (mitad / fracción / invitación) -> ¿quién pagó?
 // Por ahora solo existe el paso "monto"; los demás se agregan en los pasos 2 a 4.
@@ -23,12 +37,10 @@ export default function AnadirGasto({ pareja, onCerrar }) {
     // Marcador temporal hasta el Paso 2
     return (
       <View style={styles.contenedor}>
-        <Text style={styles.resumen}>
-          ${formatearMonto(monto)}{descripcion.trim() ? ` · ${descripcion.trim()}` : ''}
-        </Text>
+        <Resumen monto={monto} descripcion={descripcion} onEditar={() => setPaso('monto')} />
         <Text style={styles.ayuda}>El paso "tipo de gasto" está en construcción.</Text>
-        <Pressable onPress={() => setPaso('monto')}>
-          <Text style={styles.enlace}>Volver al monto</Text>
+        <Pressable onPress={onCerrar}>
+          <Text style={styles.enlace}>Cancelar</Text>
         </Pressable>
       </View>
     );
@@ -93,6 +105,9 @@ const styles = StyleSheet.create({
   botonApagado: { opacity: 0.4 },
   textoBoton: { color: '#fff', fontSize: 18, fontWeight: '600', textAlign: 'center' },
   enlace: { color: ACENTO, fontSize: 16, textAlign: 'center', marginTop: 18 },
-  resumen: { fontSize: 28, fontWeight: '700', color: '#222', textAlign: 'center', marginBottom: 12 },
+  resumenCaja: { backgroundColor: '#fff', borderWidth: 1, borderColor: '#D4D4D0', borderRadius: 16,
+    paddingVertical: 14, paddingHorizontal: 16, marginBottom: 28 },
+  resumen: { fontSize: 24, fontWeight: '700', color: '#222', textAlign: 'center' },
+  resumenEditar: { fontSize: 12, color: '#888', textAlign: 'center', marginTop: 4 },
   ayuda: { fontSize: 15, color: '#555', textAlign: 'center' },
 });
