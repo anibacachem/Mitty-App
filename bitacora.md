@@ -26,3 +26,4 @@
 - style: "Pagos entre ustedes" en palabras (Pagó/Recibió) y nota del botón de cierre | archivos: src/pantallas/Principal.js, src/pantallas/CierreMes.js, bitacora.md | motivo: los ±62.000 eran de esa fila y los signos confundían; el pago siempre se registra a nombre de quien debe
 - style: Gasto total, Pagó/Recibió alineados y gastos del mes en caja con scroll | archivos: src/pantallas/Principal.js, bitacora.md | motivo: segunda vuelta; "Gasto" para lo anotado, "Pagó" solo para pagos entre ustedes, lista con los más nuevos arriba y 5 visibles
 - style: total (N) en Gastos del mes y explicación del Detalle con botón (i) | archivos: src/pantallas/Principal.js, bitacora.md | motivo: segunda vuelta; ahorrar espacio en la pantalla principal
+- feat: filtro de la lista del mes (Todos, Compartidos, Invitaciones, Pagos) | archivos: src/pantallas/Principal.js, bitacora.md | motivo: segunda vuelta; encontrar rápido un tipo de movimiento, el título muestra "N de M"

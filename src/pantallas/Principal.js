@@ -8,6 +8,13 @@ import { limitesDelMes, medirPeriodo } from '../habito';
 import DiaDeclarable from '../componentes/DiaDeclarable';
 
 const CADA_CUANTO_MS = 5000; // los datos se refrescan solos cada 5 segundos
+// Filtros de la lista: qué tipos de movimiento muestra cada uno (null = todos)
+const FILTROS = [
+  { id: 'todos', texto: 'Todos', tipos: null },
+  { id: 'compartidos', texto: 'Compartidos', tipos: ['mitad', 'fraccion', 'por_otro'] },
+  { id: 'invitaciones', texto: 'Invitaciones', tipos: ['invita'] },
+  { id: 'pagos', texto: 'Pagos', tipos: ['pago'] },
+];
 const ALTO_CAJA = 400; // alto de la caja de gastos: caben unos 5 gastos; el resto se ve con scroll
 
 // Pantalla principal: saludo, saldo, detalle, botón de añadir y lista de gastos del mes.
@@ -21,6 +28,7 @@ export default function Principal({ pareja, aviso, onAnadir, onRitual, onCierre,
   const [refrescando, setRefrescando] = useState(false); // al arrastrar hacia abajo
   const [conexion, setConexion] = useState('probando'); // 'probando' | 'ok' | 'sin'
   const [abierto, setAbierto] = useState(null); // id de la fila expandida
+  const [filtro, setFiltro] = useState('todos'); // filtro activo de la lista del mes
   const [infoAbierta, setInfoAbierta] = useState(false); // explicación del Detalle (botón i)
   const enCurso = useRef(false); // evita pedir de nuevo si la petición anterior no terminó
 
@@ -107,6 +115,10 @@ export default function Principal({ pareja, aviso, onAnadir, onRitual, onCierre,
   const listaMes = [...delMes].sort((a, b) =>
     String(b.creado ?? b.fecha).localeCompare(String(a.creado ?? a.fecha))
   );
+
+  // Aplicamos el filtro elegido sobre la lista del mes
+  const tiposFiltro = FILTROS.find((f) => f.id === filtro).tipos;
+  const listaVista = tiposFiltro ? listaMes.filter((m) => tiposFiltro.includes(m.tipo)) : listaMes;
 
   // Una fila de la lista. Al tocarla se abre y muestra el reparto.
   function renderFila({ item }) {
@@ -260,7 +272,23 @@ export default function Principal({ pareja, aviso, onAnadir, onRitual, onCierre,
         <Text style={styles.copiar}>{copiado ? '¡Copiado!' : 'Copiar'}</Text>
       </Pressable>
 
-      <Text style={styles.seccion}>Gastos del mes ({listaMes.length})</Text>
+      <Text style={styles.seccion}>
+        Gastos del mes ({filtro === 'todos' ? listaMes.length : `${listaVista.length} de ${listaMes.length}`})
+      </Text>
+      {/* Filtros: un toque para ver solo un tipo de movimiento */}
+      {listaMes.length > 0 && (
+        <View style={styles.filtros}>
+          {FILTROS.map((f) => (
+            <Pressable
+              key={f.id}
+              style={[styles.chip, filtro === f.id && styles.chipActivo]}
+              onPress={() => setFiltro(f.id)}
+            >
+              <Text style={[styles.chipTexto, filtro === f.id && styles.chipTextoActivo]}>{f.texto}</Text>
+            </Pressable>
+          ))}
+        </View>
+      )}
       {cargando && <ActivityIndicator color={ACENTO} style={{ marginTop: 12 }} />}
       {!cargando && conexion === 'sin' && movimientos.length === 0 && (
         <Text style={styles.error}>No se pudo cargar. Se reintenta solo cada 5 segundos.</Text>
@@ -270,10 +298,13 @@ export default function Principal({ pareja, aviso, onAnadir, onRitual, onCierre,
       )}
 
       {/* Caja con scroll propio: se ven unos 5 gastos (los más nuevos arriba); al bajar aparecen los más antiguos */}
-      {listaMes.length > 0 && (
+      {listaMes.length > 0 && listaVista.length === 0 && (
+        <Text style={styles.vacio}>No hay movimientos de este tipo en el mes.</Text>
+      )}
+      {listaVista.length > 0 && (
         <View style={styles.cajaLista}>
           <ScrollView nestedScrollEnabled showsVerticalScrollIndicator style={{ maxHeight: ALTO_CAJA }}>
-            {listaMes.map((item) => (
+            {listaVista.map((item) => (
               <View key={item.id}>{renderFila({ item })}</View>
             ))}
           </ScrollView>
@@ -367,6 +398,12 @@ const styles = StyleSheet.create({
   seccion: { fontSize: 18, fontWeight: '700', color: '#222', marginTop: 24, marginBottom: 8 },
   vacio: { color: '#777', fontSize: 15, marginTop: 8 },
   error: { color: '#B91C1C', fontSize: 14, marginTop: 8 },
+  filtros: { flexDirection: 'row', flexWrap: 'wrap', marginBottom: 8 },
+  chip: { borderWidth: 1.5, borderColor: ACENTO, borderRadius: 16, paddingVertical: 6,
+    paddingHorizontal: 12, marginRight: 8, marginBottom: 6, backgroundColor: '#fff' },
+  chipActivo: { backgroundColor: ACENTO },
+  chipTexto: { color: ACENTO, fontSize: 14, fontWeight: '600' },
+  chipTextoActivo: { color: '#fff' },
   cajaLista: { backgroundColor: '#F3F3EE', borderRadius: 16, borderWidth: 1, borderColor: '#E5E5E0',
     paddingHorizontal: 8, paddingBottom: 8, marginTop: 4 },
   fila: { backgroundColor: '#fff', borderRadius: 12, borderWidth: 1, borderColor: '#E5E5E0',
