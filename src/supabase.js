@@ -13,11 +13,16 @@ const ESPERA_MAXIMA_MS = 8000;
 //   metodo:       GET (leer), POST (crear)
 //   cuerpo:       datos a guardar (solo en POST)
 //   codigoPareja: va en el header x-pareja; la base solo deja pasar filas con ese código
-export async function pedir(ruta, { metodo = 'GET', cuerpo, codigoPareja } = {}) {
+//   prefer:       cómo responde Supabase. Por defecto devuelve la fila creada. Para "crear o actualizar"
+//                 (upsert) se usa 'resolution=merge-duplicates,return=representation'.
+export async function pedir(
+  ruta,
+  { metodo = 'GET', cuerpo, codigoPareja, prefer = 'return=representation' } = {}
+) {
   const headers = {
     apikey: LLAVE,
     'Content-Type': 'application/json',
-    Prefer: 'return=representation', // pide que devuelva la fila creada
+    Prefer: prefer,
   };
   if (codigoPareja) headers['x-pareja'] = codigoPareja;
 

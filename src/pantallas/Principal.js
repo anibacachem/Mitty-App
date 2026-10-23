@@ -1,9 +1,11 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { ActivityIndicator, FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
 import * as Clipboard from 'expo-clipboard';
-import { pedir } from '../supabase';
-import { conSigno, etiquetaTipo, inicioDeMes, pesos } from '../formato';
+import { cargarTodo } from '../datos';
+import { conSigno, etiquetaTipo, hoyISO, inicioDeMes, pesos } from '../formato';
 import { calcularBalance, describirSaldo, textoReparto } from '../saldo';
+import { medirPeriodo } from '../habito';
+import DiaDeclarable from '../componentes/DiaDeclarable';
 
 const CADA_CUANTO_MS = 5000; // los datos se refrescan solos cada 5 segundos
 
@@ -12,6 +14,8 @@ const CADA_CUANTO_MS = 5000; // los datos se refrescan solos cada 5 segundos
 export default function Principal({ pareja, aviso, onAnadir, onRitual, onSalir }) {
   const [copiado, setCopiado] = useState(false);
   const [movimientos, setMovimientos] = useState([]);
+  const [declaraciones, setDeclaraciones] = useState([]); // días declarados con menos de 3 gastos
+  const [metasDisponible, setMetasDisponible] = useState(true); // false si falta la tabla metas_dia
   const [cargando, setCargando] = useState(true); // primera carga
   const [refrescando, setRefrescando] = useState(false); // al arrastrar hacia abajo
   const [conexion, setConexion] = useState('probando'); // 'probando' | 'ok' | 'sin'
@@ -31,11 +35,10 @@ export default function Principal({ pareja, aviso, onAnadir, onRitual, onSalir }
     if (enCurso.current) return;
     enCurso.current = true;
     try {
-      const filas = await pedir(
-        `movimientos?select=*&codigo=eq.${pareja.codigo}&order=fecha.desc,creado.desc`,
-        { codigoPareja: pareja.codigo }
-      );
-      setMovimientos(filas);
+      const datos = await cargarTodo(pareja.codigo); // gastos + días declarados, en paralelo
+      setMovimientos(datos.movimientos);
+      setDeclaraciones(datos.declaraciones);
+      setMetasDisponible(datos.metasDisponible);
       setConexion('ok');
     } catch (e) {
       setConexion('sin');
@@ -68,6 +71,11 @@ export default function Principal({ pareja, aviso, onAnadir, onRitual, onSalir }
   const estiloSaldo = { debo: styles.saldoDebo, medeben: styles.saldoMeDeben, amano: styles.saldoAMano }[saldo.clase];
 
   const esDomingo = new Date().getDay() === 0; // 0 = domingo
+
+  // Cómo va el día de hoy: gastos compartidos anotados contra la meta (3, o lo declarado)
+  const hoy = hoyISO();
+  const diaHoy = medirPeriodo(movimientos, declaraciones, hoy, hoy, hoy).dias[0];
+  const declaracionHoy = declaraciones.find((d) => d.fecha === hoy);
 
   // Solo los gastos de este mes van en la lista (el saldo usa todos)
   const delMes = movimientos.filter((m) => m.fecha >= inicioDeMes());
@@ -139,6 +147,33 @@ export default function Principal({ pareja, aviso, onAnadir, onRitual, onSalir }
       <Pressable style={styles.botonAnadir} onPress={onAnadir}>
         <Text style={styles.textoAnadir}>+ Añadir gasto</Text>
       </Pressable>
+
+      {/* Hoy: gastos compartidos anotados contra la meta, con punto por gasto y opción de declarar menos */}
+      <View style={styles.tarjetaHoy}>
+        <View style={styles.hoyFila}>
+          <Text style={styles.hoyTitulo}>Hoy</Text>
+          <View style={styles.puntos}>
+            {Array.from({ length: diaHoy.objetivo }).map((_, i) => (
+              <View key={i} style={[styles.puntoHoy, i < diaHoy.contados && styles.puntoHoyLleno]} />
+            ))}
+          </View>
+          <Text style={[styles.hoyConteo, diaHoy.completo ? styles.verde : styles.ambar]}>
+            {diaHoy.objetivo === 0
+              ? 'Sin gastos hoy'
+              : `${diaHoy.contados}/${diaHoy.objetivo}${diaHoy.extra > 0 ? '+' : ''}`}
+          </Text>
+        </View>
+        <Text style={styles.hoySub}>gastos compartidos anotados</Text>
+        <DiaDeclarable
+          compacto
+          pareja={pareja}
+          fecha={hoy}
+          dia={diaHoy}
+          declaracion={declaracionHoy}
+          disponible={metasDisponible}
+          onCambio={cargar}
+        />
+      </View>
 
       {/* Ritual de domingo: siempre disponible; los domingos se resalta */}
       <Pressable style={[styles.botonRitual, esDomingo && styles.botonRitualHoy]} onPress={onRitual}>
@@ -254,6 +289,16 @@ const styles = StyleSheet.create({
   estadoTexto: { fontSize: 12, color: '#777' },
   botonAnadir: { backgroundColor: ACENTO, paddingVertical: 20, borderRadius: 16, marginTop: 16 },
   textoAnadir: { color: '#fff', fontSize: 20, fontWeight: '700', textAlign: 'center' },
+  tarjetaHoy: { backgroundColor: '#fff', borderRadius: 16, padding: 16, borderWidth: 1,
+    borderColor: '#E5E5E0', marginTop: 12 },
+  hoyFila: { flexDirection: 'row', alignItems: 'center' },
+  hoyTitulo: { fontSize: 17, fontWeight: '700', color: '#222', marginRight: 12 },
+  puntos: { flexDirection: 'row', flex: 1 },
+  puntoHoy: { width: 14, height: 14, borderRadius: 7, borderWidth: 2, borderColor: ACENTO, marginRight: 6 },
+  puntoHoyLleno: { backgroundColor: ACENTO },
+  hoyConteo: { fontSize: 17, fontWeight: '700' },
+  hoySub: { fontSize: 12, color: '#888', marginTop: 4 },
+  ambar: { color: '#D97706' }, // ("verde" ya existe más abajo, en el detalle del saldo)
   botonRitual: { borderWidth: 2, borderColor: ACENTO, paddingVertical: 16, borderRadius: 16,
     marginTop: 12, backgroundColor: '#fff' },
   botonRitualHoy: { backgroundColor: '#D7EEEA' },

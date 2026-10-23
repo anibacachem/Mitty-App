@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { pedir } from '../supabase';
+import { cargarTodo } from '../datos';
+import DiaDeclarable from '../componentes/DiaDeclarable';
 import { hace, hoyISO, pesos } from '../formato';
 import { calcularBalance, describirSaldo } from '../saldo';
 import {
@@ -11,6 +12,7 @@ import {
 const corta = (iso) => `${iso.slice(8, 10)}/${iso.slice(5, 7)}`;
 
 const LETRAS_DIA = ['D', 'L', 'M', 'M', 'J', 'V', 'S']; // indexadas por diaDeSemana (0 = domingo)
+const NOMBRES_DIA = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
 const MESES = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto',
   'septiembre', 'octubre', 'noviembre', 'diciembre'];
 
@@ -46,17 +48,19 @@ function Medidor({ titulo, medida }) {
 // pareja: { codigo, nombre0, nombre1, yo }. onVolver: regresar a la pantalla principal.
 export default function Ritual({ pareja, onVolver }) {
   const [movimientos, setMovimientos] = useState(null); // null = todavía cargando
+  const [declaraciones, setDeclaraciones] = useState([]); // días declarados con menos de 3 gastos
+  const [metasDisponible, setMetasDisponible] = useState(true); // false si falta la tabla metas_dia
+  const [diaSel, setDiaSel] = useState(null); // día tocado en la tira (null = hoy)
   const [error, setError] = useState('');
 
-  // Pedimos todos los movimientos: la semana sale de filtrarlos y el saldo usa todos (igual que en Principal)
+  // Pedimos todos los movimientos y los días declarados: la semana sale de filtrarlos y el saldo usa todos
   async function cargar() {
     setError('');
     try {
-      const filas = await pedir(
-        `movimientos?select=*&codigo=eq.${pareja.codigo}&order=fecha.desc,creado.desc`,
-        { codigoPareja: pareja.codigo }
-      );
-      setMovimientos(filas);
+      const datos = await cargarTodo(pareja.codigo);
+      setMovimientos(datos.movimientos);
+      setDeclaraciones(datos.declaraciones);
+      setMetasDisponible(datos.metasDisponible);
     } catch (e) {
       setError('No se pudo cargar el resumen: ' + String(e.message).slice(0, 150));
     }
@@ -104,11 +108,15 @@ export default function Ritual({ pareja, onVolver }) {
   // Indicador de éxito (conteo): semana fija de lunes a domingo recortada al mes, y mes calendario
   const hoy = hoyISO();
   const semanaActual = semanasDelMes(hoy).find((s) => hoy >= s.desde && hoy <= s.hasta);
-  const declaraciones = []; // Paso 2: aquí llegarán los días en que declararon "ese día hubo menos de 3"
   const medSemana = medirPeriodo(movimientos, declaraciones, semanaActual.desde, semanaActual.hasta, hoy);
   const limitesMes = limitesDelMes(hoy);
   const medMes = medirPeriodo(movimientos, declaraciones, limitesMes.desde, limitesMes.hasta, hoy);
   const nombreMes = MESES[Number(hoy.slice(5, 7)) - 1];
+
+  // Día seleccionado en la tira (por defecto, hoy) y lo que sabemos de él
+  const seleccionado = diaSel ?? hoy;
+  const dSel = medSemana.dias.find((x) => x.fecha === seleccionado); // undefined = día que aún no llega
+  const declSel = declaraciones.find((x) => x.fecha === seleccionado);
 
   return (
     <ScrollView style={styles.pantalla} contentContainerStyle={{ padding: 24, paddingBottom: 48 }}>
@@ -126,28 +134,47 @@ export default function Ritual({ pareja, onVolver }) {
           {diasEntre(semanaActual.desde, semanaActual.hasta).map((f) => {
             const d = medSemana.dias.find((x) => x.fecha === f); // undefined = día que aún no llega
             return (
-              <View key={f} style={styles.dia}>
+              // Tocar un día lo selecciona para declararlo (los días que aún no llegan no se pueden tocar)
+              <Pressable key={f} style={styles.dia} onPress={() => d && setDiaSel(f)}>
                 <Text style={styles.diaLetra}>{LETRAS_DIA[diaDeSemana(f)]}</Text>
                 <View
                   style={[
                     styles.diaCaja,
                     !d && styles.diaFuturo,
                     d && (d.completo ? styles.diaOk : styles.diaPoco),
-                    f === hoy && styles.diaHoy,
+                    d && d.declarado && styles.diaDeclarado, // borde punteado: la meta del día fue declarada
+                    f === seleccionado && styles.diaSel,
                   ]}
                 >
                   <Text style={styles.diaTexto}>{d ? `${d.contados}/${d.objetivo}${d.extra > 0 ? '+' : ''}` : '–'}</Text>
                 </View>
-              </View>
+              </Pressable>
             );
           })}
+        </View>
+
+        {/* Panel del día seleccionado: declarar que hubo menos de 3 gastos compartidos */}
+        <View style={styles.panelDia}>
+          <Text style={styles.panelTitulo}>
+            {NOMBRES_DIA[diaDeSemana(seleccionado)]} {corta(seleccionado)}
+            {dSel ? ` · ${dSel.anotados} ${dSel.anotados === 1 ? 'gasto anotado' : 'gastos anotados'}` : ''}
+          </Text>
+          <DiaDeclarable
+            key={seleccionado}
+            pareja={pareja}
+            fecha={seleccionado}
+            dia={dSel}
+            declaracion={declSel}
+            disponible={metasDisponible}
+            onCambio={cargar}
+          />
         </View>
 
         <Medidor titulo={`Mes de ${nombreMes}`} medida={medMes} />
 
         <Text style={styles.nota}>
           Meta: {META_DIARIA} gastos compartidos por día (mitad y fracción). "Logrado" desde {META_PORCENTAJE}%.
-          Pronto podrás declarar los días en que hubo menos.
+          Toca un día para declarar que hubo menos; el borde punteado marca los días declarados.
         </Text>
       </View>
 
@@ -236,7 +263,10 @@ const styles = StyleSheet.create({
   diaOk: { backgroundColor: '#DDF3E4' },
   diaPoco: { backgroundColor: '#FDEBC8' },
   diaFuturo: { backgroundColor: '#F0F0EE' },
-  diaHoy: { borderColor: ACENTO }, // contorno en el día de hoy
+  diaDeclarado: { borderStyle: 'dashed', borderColor: '#9A9A95' },
+  diaSel: { borderStyle: 'solid', borderColor: ACENTO }, // contorno en el día seleccionado (por defecto, hoy)
+  panelDia: { backgroundColor: '#F6F6F3', borderRadius: 12, padding: 12, marginTop: 14 },
+  panelTitulo: { fontSize: 15, fontWeight: '700', color: '#222' },
   diaTexto: { fontSize: 12, fontWeight: '700', color: '#333' },
   nota: { fontSize: 12, color: '#888', marginTop: 10 },
   saldo: { fontSize: 24, fontWeight: '700', marginTop: 4 },
