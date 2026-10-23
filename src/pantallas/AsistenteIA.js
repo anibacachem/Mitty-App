@@ -5,6 +5,8 @@ import {
 import { etiquetaTipo, fechaConDia, formatearMonto, hace, hoyISO } from '../formato';
 import { textoReparto } from '../saldo';
 import { interpretarGasto } from '../ia';
+import { pedir } from '../supabase';
+import { generarId } from '../codigo';
 
 // Ejemplos que se pueden tocar para llenar el campo (ayudan a saber cómo hablarle al asistente)
 const EJEMPLOS = [
@@ -14,7 +16,7 @@ const EJEMPLOS = [
 ];
 
 // Ventana de chat del asistente. Envía lo que escribes a la IA (vía una función de Supabase) y muestra
-// lo que entendió. Aún no guarda el gasto (paso 3) ni recibe audio (paso 4).
+// lo que entendió, con botones Confirmar (guarda el gasto) y Corregir. Aún no recibe audio (paso 4).
 // pareja: { codigo, nombre0, nombre1, yo }. onVolver: cerrar el chat y volver a la principal.
 export default function AsistenteIA({ pareja, onVolver }) {
   const nombres = [pareja.nombre0, pareja.nombre1];
@@ -36,10 +38,64 @@ export default function AsistenteIA({ pareja, onVolver }) {
     setTimeout(() => scroll.current?.scrollToEnd({ animated: true }), 50);
   }
 
-  // Cambia el texto de un mensaje ya puesto (para convertir "Pensando…" en la respuesta)
-  function reemplazar(id, contenido) {
-    setMensajes((previos) => previos.map((m) => (m.id === id ? { ...m, texto: contenido } : m)));
+  // Cambia el texto de un mensaje ya puesto (para convertir "Pensando…" en la respuesta).
+  // "extra" suma campos al mensaje, por ejemplo la propuesta de gasto.
+  function reemplazar(id, contenido, extra = {}) {
+    setMensajes((previos) => previos.map((m) => (m.id === id ? { ...m, texto: contenido, ...extra } : m)));
     setTimeout(() => scroll.current?.scrollToEnd({ animated: true }), 50);
+  }
+
+  // Cambia solo el estado de la propuesta de un mensaje: 'pendiente' | 'guardando' | 'guardado' | 'descartado' | 'error'
+  function cambiarPropuesta(id, cambios) {
+    setMensajes((previos) =>
+      previos.map((m) => (m.id === id ? { ...m, propuesta: { ...m.propuesta, ...cambios } } : m))
+    );
+  }
+
+  // Confirmar: guarda el gasto igual que el flujo normal de "Añadir gasto" (misma tabla, mismas reglas)
+  async function confirmar(idMensaje) {
+    const mensaje = mensajes.find((m) => m.id === idMensaje);
+    if (!mensaje || !mensaje.propuesta) return;
+    const { gasto, idGasto } = mensaje.propuesta;
+    cambiarPropuesta(idMensaje, { estado: 'guardando', error: '' });
+    const fila = {
+      id: idGasto, // el mismo id en cada reintento: si un intento sí se guardó, no se duplica
+      codigo: pareja.codigo,
+      descripcion: gasto.descripcion,
+      monto: gasto.monto,
+      pagador: gasto.pagador,
+      tipo: gasto.tipo,
+      fecha: gasto.fecha,
+    };
+    if (gasto.tipo === 'fraccion') {
+      fila.parte0 = gasto.parte0;
+      fila.parte1 = gasto.parte1;
+    }
+    try {
+      await pedir('movimientos', { metodo: 'POST', cuerpo: fila, codigoPareja: pareja.codigo });
+      terminarGuardado(idMensaje);
+    } catch (e) {
+      // 23505 = "este id ya existe": un intento anterior sí se guardó. Lo damos por bueno.
+      if (String(e.message).includes('23505')) {
+        terminarGuardado(idMensaje);
+      } else {
+        cambiarPropuesta(idMensaje, { estado: 'error', error: String(e.message).slice(0, 120) });
+      }
+    }
+  }
+
+  function terminarGuardado(idMensaje) {
+    cambiarPropuesta(idMensaje, { estado: 'guardado' });
+    agregar('ia', 'Listo, ya quedó en tu lista. ¿Anotamos otro?');
+  }
+
+  // Corregir: descarta la propuesta y devuelve tu frase al campo para que la edites y la reenvíes
+  function corregir(idMensaje) {
+    const mensaje = mensajes.find((m) => m.id === idMensaje);
+    if (!mensaje || !mensaje.propuesta) return;
+    cambiarPropuesta(idMensaje, { estado: 'descartado' });
+    setTexto(mensaje.propuesta.textoOriginal);
+    agregar('ia', 'Sin problema. Edita el texto, o dime los cambios, y vuelve a enviarlo.');
   }
 
   // Arma el texto de lo que entendió la IA: "Entendí: $42.000 · Super · Mitad · pagó Ana · hoy"
@@ -65,7 +121,10 @@ export default function AsistenteIA({ pareja, onVolver }) {
         reemplazar(idPensando, r.mensaje || 'No entendí el gasto.');
       } else {
         const supuestos = r.supuestos ? `\nAsumí: ${r.supuestos}` : '';
-        reemplazar(idPensando, `${describir(r.gasto)}${supuestos}\n\n(Todavía no lo guardo: eso viene en el próximo paso.)`);
+        // El mensaje lleva la propuesta: así se dibujan los botones Confirmar / Corregir debajo
+        reemplazar(idPensando, `${describir(r.gasto)}${supuestos}\n\n¿Lo anoto?`, {
+          propuesta: { gasto: r.gasto, idGasto: generarId(), estado: 'pendiente', textoOriginal: limpio, error: '' },
+        });
       }
     } catch (e) {
       reemplazar(idPensando, 'No pude hablar con la IA: ' + String(e.message).slice(0, 120));
@@ -95,6 +154,28 @@ export default function AsistenteIA({ pareja, onVolver }) {
         {mensajes.map((m) => (
           <View key={m.id} style={[styles.burbuja, m.rol === 'yo' ? styles.burbujaYo : styles.burbujaIA]}>
             <Text style={[styles.burbujaTexto, m.rol === 'yo' && { color: '#fff' }]}>{m.texto}</Text>
+
+            {/* Si el mensaje trae una propuesta de gasto, mostramos sus botones según el estado */}
+            {m.propuesta && (m.propuesta.estado === 'pendiente' || m.propuesta.estado === 'error') && (
+              <View>
+                {m.propuesta.estado === 'error' && (
+                  <Text style={styles.propError}>No se pudo guardar: {m.propuesta.error}</Text>
+                )}
+                <View style={styles.propBotones}>
+                  <Pressable style={styles.propConfirmar} onPress={() => confirmar(m.id)}>
+                    <Text style={styles.propConfirmarTexto}>
+                      {m.propuesta.estado === 'error' ? 'Reintentar' : 'Confirmar'}
+                    </Text>
+                  </Pressable>
+                  <Pressable style={styles.propCorregir} onPress={() => corregir(m.id)}>
+                    <Text style={styles.propCorregirTexto}>Corregir</Text>
+                  </Pressable>
+                </View>
+              </View>
+            )}
+            {m.propuesta?.estado === 'guardando' && <Text style={styles.propEstado}>Guardando…</Text>}
+            {m.propuesta?.estado === 'guardado' && <Text style={[styles.propEstado, { color: '#16A34A' }]}>✓ Anotado</Text>}
+            {m.propuesta?.estado === 'descartado' && <Text style={styles.propEstado}>Descartado</Text>}
           </View>
         ))}
 
@@ -142,6 +223,13 @@ const styles = StyleSheet.create({
   burbujaIA: { alignSelf: 'flex-start', backgroundColor: '#fff', borderWidth: 1, borderColor: '#E5E5E0' },
   burbujaYo: { alignSelf: 'flex-end', backgroundColor: ACENTO },
   burbujaTexto: { fontSize: 16, color: '#222', lineHeight: 22 },
+  propBotones: { flexDirection: 'row', marginTop: 10 },
+  propConfirmar: { backgroundColor: ACENTO, borderRadius: 12, paddingVertical: 9, paddingHorizontal: 18, marginRight: 8 },
+  propConfirmarTexto: { color: '#fff', fontWeight: '700', fontSize: 15 },
+  propCorregir: { borderWidth: 1.5, borderColor: ACENTO, borderRadius: 12, paddingVertical: 8, paddingHorizontal: 16 },
+  propCorregirTexto: { color: ACENTO, fontWeight: '700', fontSize: 15 },
+  propEstado: { fontSize: 14, fontWeight: '700', color: '#777', marginTop: 8 },
+  propError: { fontSize: 13, color: '#B91C1C', marginTop: 8 },
   ejemplosTitulo: { fontSize: 13, color: '#777', marginBottom: 6 },
   ejemplo: { alignSelf: 'flex-start', borderWidth: 1.5, borderColor: ACENTO, borderRadius: 14,
     paddingVertical: 8, paddingHorizontal: 12, marginBottom: 8, backgroundColor: '#fff' },
