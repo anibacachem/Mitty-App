@@ -29,6 +29,8 @@ function Resumen({ monto, descripcion, extra, detalle, onEditar }) {
   );
 }
 
+const MARCAS = [0, 25, 50, 75, 100]; // puntos donde la perilla "se pega" al arrastrar
+
 // Barra deslizable para repartir un gasto en porcentajes. A la izquierda va tu nombre y a la derecha el del otro.
 // Arrastra (o toca) la perilla: hacia la derecha, más para ti; hacia la izquierda, más para el otro.
 //   pct: porcentaje de quien va a la izquierda (0 a 100). montoIzq / montoDer: lo que le toca a cada uno en $.
@@ -42,8 +44,16 @@ function BarraReparto({ pct, montoIzq, montoDer, nombreIzq, nombreDer, onCambio,
   const alArrastrar = useRef(onArrastre);
   alArrastrar.current = onArrastre;
 
-  // Posición del dedo dentro de la barra (en píxeles) -> porcentaje entero entre 0 y 100
-  const aPorcentaje = (x) => Math.max(0, Math.min(100, Math.round((x / ancho.current) * 100)));
+  // Posición del dedo dentro de la barra (en píxeles) -> porcentaje entero entre 0 y 100.
+  // Imán: si caes a 2 puntos o menos de una marca (0, 25, 50, 75, 100), la perilla se pega a ella.
+  // Para un valor exacto cerca de una marca (ej. 51%) están los botones − y +.
+  const aPorcentaje = (x) => {
+    const p = Math.max(0, Math.min(100, Math.round((x / ancho.current) * 100)));
+    const marca = MARCAS.find((m) => Math.abs(p - m) <= 2);
+    return marca === undefined ? p : marca;
+  };
+  // Ajuste fino de 1 punto con los botones (sin imán)
+  const mover = (delta) => onCambio(Math.max(0, Math.min(100, pct + delta)));
 
   const gesto = useRef(
     PanResponder.create({
@@ -67,16 +77,31 @@ function BarraReparto({ pct, montoIzq, montoDer, nombreIzq, nombreDer, onCambio,
         <Text style={[styles.repartoNombre, { textAlign: 'right' }]}>{nombreDer}</Text>
       </View>
 
-      {/* Zona táctil. Los hijos tienen pointerEvents="none" para que la posición del dedo se mida sobre la barra */}
-      <View
-        style={styles.pistaToque}
-        onLayout={(e) => { ancho.current = e.nativeEvent.layout.width || 1; }}
-        {...gesto.panHandlers}
-      >
-        <View pointerEvents="none" style={styles.pistaFondo}>
-          <View style={[styles.pistaIzq, { width: `${pct}%` }]} />
+      {/* Fila: botón −1%, la barra y botón +1% */}
+      <View style={styles.pistaFila}>
+        <Pressable style={styles.pasoBoton} onPress={() => mover(-1)} hitSlop={6}>
+          <Text style={styles.pasoTexto}>−</Text>
+        </Pressable>
+
+        {/* Zona táctil. Los hijos tienen pointerEvents="none" para que la posición del dedo se mida sobre la barra */}
+        <View
+          style={styles.pistaToque}
+          onLayout={(e) => { ancho.current = e.nativeEvent.layout.width || 1; }}
+          {...gesto.panHandlers}
+        >
+          <View pointerEvents="none" style={styles.pistaFondo}>
+            <View style={[styles.pistaIzq, { width: `${pct}%` }]} />
+          </View>
+          {/* Marcas de 25%, 50% y 75% */}
+          {[25, 50, 75].map((m) => (
+            <View key={m} pointerEvents="none" style={[styles.marca, { left: `${m}%` }]} />
+          ))}
+          <View pointerEvents="none" style={[styles.perilla, { left: `${pct}%` }]} />
         </View>
-        <View pointerEvents="none" style={[styles.perilla, { left: `${pct}%` }]} />
+
+        <Pressable style={styles.pasoBoton} onPress={() => mover(1)} hitSlop={6}>
+          <Text style={styles.pasoTexto}>+</Text>
+        </Pressable>
       </View>
 
       <View style={styles.repartoFila}>
@@ -108,7 +133,7 @@ export default function AnadirGasto({ pareja, onCerrar, onGuardado }) {
   const [pagador, setPagador] = useState(null); // 0 o 1, igual que en la base de datos
   const [textoParte, setTextoParte] = useState(''); // lo que escribes: la parte tuya en la fracción
   const [partes, setPartes] = useState(null); // [parte de nombre0, parte de nombre1] ya calculadas
-  const [modoFraccion, setModoFraccion] = useState('cantidad'); // 'cantidad' ($) o 'porcentaje' (barra)
+  const [modoFraccion, setModoFraccion] = useState('porcentaje'); // 'porcentaje' (barra, por defecto) o 'cantidad' ($)
   const [pct, setPct] = useState(50); // porcentaje que le toca a quien va a la izquierda de la barra (yo)
   const [arrastrando, setArrastrando] = useState(false); // mientras mueves la barra, la pantalla no hace scroll
 
@@ -200,9 +225,9 @@ export default function AnadirGasto({ pareja, onCerrar, onGuardado }) {
     setTipo(valor);
     setPagador(null);
     setPartes(null);
-    setTextoParte('');
-    setModoFraccion('cantidad');
+    setModoFraccion('porcentaje'); // la fracción abre con la barra, partiendo en 50% (la mitad)
     setPct(50);
+    setTextoParte(formatearMonto(Math.round(monto / 2))); // así "Continuar" ya está listo con la mitad
     setPaso(valor === 'fraccion' ? 'fraccion' : 'quien');
   }
 
@@ -523,7 +548,12 @@ const styles = StyleSheet.create({
   repartoNombre: { flex: 1, fontSize: 16, fontWeight: '700', color: '#222' },
   repartoPct: { fontSize: 22, fontWeight: '700', color: ACENTO },
   repartoMonto: { fontSize: 15, color: '#444', marginTop: 2 },
-  pistaToque: { height: 48, justifyContent: 'center', marginVertical: 6 },
+  pistaFila: { flexDirection: 'row', alignItems: 'center', marginVertical: 6 },
+  pasoBoton: { width: 38, height: 38, borderRadius: 19, borderWidth: 2, borderColor: ACENTO,
+    alignItems: 'center', justifyContent: 'center' },
+  pasoTexto: { color: ACENTO, fontSize: 22, fontWeight: '700', lineHeight: 26 },
+  marca: { position: 'absolute', top: 14, width: 2, height: 20, marginLeft: -1, backgroundColor: '#7FB5AD' },
+  pistaToque: { flex: 1, height: 48, justifyContent: 'center', marginHorizontal: 16 },
   pistaFondo: { height: 14, borderRadius: 7, backgroundColor: '#CFE5E1', overflow: 'hidden' },
   pistaIzq: { height: 14, backgroundColor: ACENTO },
   perilla: { position: 'absolute', top: 10, width: 28, height: 28, borderRadius: 14, marginLeft: -14,
