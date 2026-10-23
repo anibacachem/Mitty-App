@@ -36,7 +36,7 @@ export function cuantoLeToca(mov) {
 //   pagosEnviados:   pagos que hizo a la otra persona (para saldar deuda)
 //   pagosRecibidos:  pagos que recibió
 //   neto: gastado - corresponde + pagosEnviados - pagosRecibidos
-//         (positivo = le deben, negativo = debe, 0 = a mano)
+//         (positivo = le deben, negativo = debe, 0 = al día)
 // Los dos netos siempre suman 0: lo que uno debe es lo que el otro tiene a favor.
 export function calcularBalance(movimientos) {
   const gastado = [0, 0];
@@ -84,5 +84,13 @@ export function describirSaldo(neto, yo, nombres) {
   const otro = yo === 0 ? 1 : 0;
   if (neto[yo] <= -0.5) return { texto: `Le debes ${pesos(-neto[yo])} a ${nombres[otro]}`, clase: 'debo' };
   if (neto[yo] >= 0.5) return { texto: `${nombres[otro]} te debe ${pesos(neto[yo])}`, clase: 'medeben' };
-  return { texto: 'A mano', clase: 'amano' };
+  return { texto: 'Al día', clase: 'amano' };
+}
+
+// Resultado de UNA persona en palabras, para la última fila del Detalle (en vez de +/− sin explicación).
+// neto: el neto de esa persona. Ejemplo: "Debe $62.000" / "Le deben $62.000" / "Al día".
+export function resultadoEnPalabras(neto) {
+  if (neto <= -0.5) return `Debe ${pesos(-neto)}`;
+  if (neto >= 0.5) return `Le deben ${pesos(neto)}`;
+  return 'Al día';
 }

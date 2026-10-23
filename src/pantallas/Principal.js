@@ -3,7 +3,7 @@ import { ActivityIndicator, FlatList, Pressable, StyleSheet, Text, View } from '
 import * as Clipboard from 'expo-clipboard';
 import { cargarTodo } from '../datos';
 import { conSigno, etiquetaTipo, hoyISO, inicioDeMes, pesos } from '../formato';
-import { calcularBalance, describirSaldo, textoReparto } from '../saldo';
+import { calcularBalance, describirSaldo, resultadoEnPalabras, textoReparto } from '../saldo';
 import { limitesDelMes, medirPeriodo } from '../habito';
 import DiaDeclarable from '../componentes/DiaDeclarable';
 
@@ -85,8 +85,8 @@ export default function Principal({ pareja, aviso, onAnadir, onRitual, onCierre,
   const orden = [yo, otro];
   const hayPagos = balance.pagosEnviados[0] + balance.pagosEnviados[1] > 0;
   const filasDetalle = [
-    { texto: 'Pagó', valores: orden.map((i) => pesos(balance.gastado[i])) },
-    { texto: 'Le tocaba', valores: orden.map((i) => pesos(balance.corresponde[i])) },
+    { texto: 'Pagó en total', valores: orden.map((i) => pesos(balance.gastado[i])) },
+    { texto: 'Le correspondía', valores: orden.map((i) => pesos(balance.corresponde[i])) },
   ];
   if (hayPagos) {
     filasDetalle.push({
@@ -164,7 +164,7 @@ export default function Principal({ pareja, aviso, onAnadir, onRitual, onCierre,
               : `${diaHoy.contados}/${diaHoy.objetivo}${diaHoy.extra > 0 ? '+' : ''}`}
           </Text>
         </View>
-        <Text style={styles.hoySub}>gastos compartidos anotados</Text>
+        <Text style={styles.hoySub}>Gastos compartidos anotados</Text>
         <DiaDeclarable
           compacto
           pareja={pareja}
@@ -210,19 +210,20 @@ export default function Principal({ pareja, aviso, onAnadir, onRitual, onCierre,
           </View>
         ))}
         <View style={[styles.detalleFila, styles.detalleTotal]}>
-          <Text style={[styles.detalleTexto, { fontWeight: '700' }]}>Diferencia</Text>
+          <Text style={[styles.detalleTexto, { fontWeight: '700' }]}>Resultado</Text>
           {orden.map((i) => (
             <Text
               key={i}
               style={[styles.detalleCol, { fontWeight: '700' },
                 balance.neto[i] <= -0.5 ? styles.rojo : balance.neto[i] >= 0.5 ? styles.verde : null]}
             >
-              {conSigno(balance.neto[i])}
+              {resultadoEnPalabras(balance.neto[i])}
             </Text>
           ))}
         </View>
         <Text style={styles.nota}>
-          Diferencia = lo que pagó − lo que le tocaba. Quien queda en negativo es quien debe.
+          Pagó en total = todo lo que puso de su bolsillo, incluidas las invitaciones. Le correspondía = su parte
+          (en una invitación, todo es de quien invita). Resultado = lo pagado − lo que le correspondía.
         </Text>
       </View>
 

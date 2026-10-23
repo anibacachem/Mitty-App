@@ -11,11 +11,11 @@ const MESES = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', '
   'septiembre', 'octubre', 'noviembre', 'diciembre'];
 
 // Cuánto debe pagarse hoy para dejar el saldo en cero, y quién lo paga.
-// Devuelve { deudor: 0 o 1, monto } o null si están a mano.
+// Devuelve { deudor: 0 o 1, monto } o null si están al día.
 function deudaActual(movimientos) {
   const neto = calcularBalance(movimientos).neto; // [neto0, neto1]; negativo = debe
   const monto = Math.round(Math.abs(neto[0]) * 100) / 100; // monto exacto (2 decimales), sin redondear a pesos
-  if (monto < 0.5) return null; // mismo criterio que el saldo de la pantalla: menos de medio peso es "A mano"
+  if (monto < 0.5) return null; // mismo criterio que el saldo de la pantalla: menos de medio peso es "Al día"
   return { deudor: neto[0] < 0 ? 0 : 1, monto };
 }
 
@@ -129,13 +129,13 @@ export default function CierreMes({ pareja, onVolver }) {
       });
       idPago.current = generarId(); // el próximo pago tendrá otro id
       await cargar();
-      setExito('Pago registrado. Están a mano.');
+      setExito('Pago registrado. Están al día.');
     } catch (e) {
       // 23505 = "este id ya existe": un intento anterior sí se guardó. Lo damos por bueno.
       if (String(e.message).includes('23505')) {
         idPago.current = generarId();
         await cargar();
-        setExito('Pago registrado. Están a mano.');
+        setExito('Pago registrado. Están al día.');
       } else {
         setError('No se pudo registrar el pago: ' + String(e.message).slice(0, 150));
       }
@@ -206,7 +206,7 @@ export default function CierreMes({ pareja, onVolver }) {
             </Text>
           </>
         ) : (
-          <Text style={styles.nota}>Están a mano: no hay nada que pagar.</Text>
+          <Text style={styles.nota}>Están al día: no hay nada que pagar.</Text>
         )}
       </View>
 
