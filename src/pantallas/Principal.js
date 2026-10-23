@@ -2,17 +2,14 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { ActivityIndicator, FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
 import * as Clipboard from 'expo-clipboard';
 import { pedir } from '../supabase';
-import { etiquetaTipo, formatearMonto, inicioDeMes } from '../formato';
-import { calcularBalance, textoReparto } from '../saldo';
+import { conSigno, etiquetaTipo, inicioDeMes, pesos } from '../formato';
+import { calcularBalance, describirSaldo, textoReparto } from '../saldo';
 
 const CADA_CUANTO_MS = 5000; // los datos se refrescan solos cada 5 segundos
 
-const pesos = (n) => `$${formatearMonto(Math.round(n))}`;
-const conSigno = (n) => (Math.round(n) >= 0 ? '+' : '−') + pesos(Math.abs(n));
-
 // Pantalla principal: saludo, saldo, detalle, botón de añadir y lista de gastos del mes.
 // pareja: { codigo, nombre0, nombre1, yo }. aviso: mensaje corto arriba (ej. "Gasto anotado").
-export default function Principal({ pareja, aviso, onAnadir, onSalir }) {
+export default function Principal({ pareja, aviso, onAnadir, onRitual, onSalir }) {
   const [copiado, setCopiado] = useState(false);
   const [movimientos, setMovimientos] = useState([]);
   const [cargando, setCargando] = useState(true); // primera carga
@@ -65,17 +62,12 @@ export default function Principal({ pareja, aviso, onAnadir, onSalir }) {
 
   // El balance se recalcula solo cuando cambian los movimientos
   const balance = useMemo(() => calcularBalance(movimientos), [movimientos]);
-  const miNeto = balance.neto[yo]; // positivo: me deben, negativo: debo
+  // La frase y su color salen de la misma función que usa el ritual, así nunca se contradicen
+  const saldo = describirSaldo(balance.neto, yo, nombres);
+  const textoSaldo = saldo.texto;
+  const estiloSaldo = { debo: styles.saldoDebo, medeben: styles.saldoMeDeben, amano: styles.saldoAMano }[saldo.clase];
 
-  let textoSaldo = 'A mano';
-  let estiloSaldo = styles.saldoAMano;
-  if (miNeto <= -0.5) {
-    textoSaldo = `Le debes ${pesos(-miNeto)} a ${otroNombre}`;
-    estiloSaldo = styles.saldoDebo;
-  } else if (miNeto >= 0.5) {
-    textoSaldo = `${otroNombre} te debe ${pesos(miNeto)}`;
-    estiloSaldo = styles.saldoMeDeben;
-  }
+  const esDomingo = new Date().getDay() === 0; // 0 = domingo
 
   // Solo los gastos de este mes van en la lista (el saldo usa todos)
   const delMes = movimientos.filter((m) => m.fecha >= inicioDeMes());
@@ -146,6 +138,13 @@ export default function Principal({ pareja, aviso, onAnadir, onSalir }) {
 
       <Pressable style={styles.botonAnadir} onPress={onAnadir}>
         <Text style={styles.textoAnadir}>+ Añadir gasto</Text>
+      </Pressable>
+
+      {/* Ritual de domingo: siempre disponible; los domingos se resalta */}
+      <Pressable style={[styles.botonRitual, esDomingo && styles.botonRitualHoy]} onPress={onRitual}>
+        <Text style={[styles.textoRitual, esDomingo && styles.textoRitualHoy]}>
+          {esDomingo ? 'Hoy toca el ritual de domingo' : 'Ritual de domingo'}
+        </Text>
       </Pressable>
 
       {/* Tarjeta de detalle: los números que explican el saldo */}
@@ -255,6 +254,11 @@ const styles = StyleSheet.create({
   estadoTexto: { fontSize: 12, color: '#777' },
   botonAnadir: { backgroundColor: ACENTO, paddingVertical: 20, borderRadius: 16, marginTop: 16 },
   textoAnadir: { color: '#fff', fontSize: 20, fontWeight: '700', textAlign: 'center' },
+  botonRitual: { borderWidth: 2, borderColor: ACENTO, paddingVertical: 16, borderRadius: 16,
+    marginTop: 12, backgroundColor: '#fff' },
+  botonRitualHoy: { backgroundColor: '#D7EEEA' },
+  textoRitual: { color: ACENTO, fontSize: 17, fontWeight: '600', textAlign: 'center' },
+  textoRitualHoy: { fontWeight: '700' },
   detalleFila: { flexDirection: 'row', alignItems: 'center', paddingVertical: 6 },
   detalleTexto: { flex: 1.3, fontSize: 14, color: '#555' },
   detalleCol: { flex: 1, fontSize: 14, color: '#222', textAlign: 'right' },

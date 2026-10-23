@@ -1,6 +1,6 @@
 // Cálculo del saldo entre los dos. Aquí vive TODA la regla de "quién le debe a quién".
 // Convención: las personas son 0 (nombre0) y 1 (nombre1), igual que "pagador" en la base de datos.
-import { formatearMonto } from './formato';
+import { pesos } from './formato';
 
 // Cuánto le toca a cada persona de UN gasto: devuelve [parte de nombre0, parte de nombre1].
 export function cuantoLeToca(mov) {
@@ -74,6 +74,15 @@ export function textoReparto(mov, nombres) {
   if (mov.tipo === 'invita') return `Invitó ${nombres[mov.pagador]}: no genera deuda`;
   if (mov.tipo === 'personal') return `Gasto personal de ${nombres[mov.pagador]}: no genera deuda`;
   const partes = cuantoLeToca(mov);
-  const pesos = (n) => `$${formatearMonto(Math.round(n))}`;
   return `${nombres[0]} ${pesos(partes[0])} · ${nombres[1]} ${pesos(partes[1])}`;
+}
+
+// Frase del saldo vista desde mi lado, con su "clase" para elegir el color.
+// neto: [neto0, neto1] de calcularBalance. yo: 0 o 1. Se usa en la pantalla principal y en el ritual,
+// así los dos lugares siempre dicen exactamente lo mismo.
+export function describirSaldo(neto, yo, nombres) {
+  const otro = yo === 0 ? 1 : 0;
+  if (neto[yo] <= -0.5) return { texto: `Le debes ${pesos(-neto[yo])} a ${nombres[otro]}`, clase: 'debo' };
+  if (neto[yo] >= 0.5) return { texto: `${nombres[otro]} te debe ${pesos(neto[yo])}`, clase: 'medeben' };
+  return { texto: 'A mano', clase: 'amano' };
 }

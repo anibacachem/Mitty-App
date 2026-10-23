@@ -6,6 +6,10 @@ export function formatearMonto(numero) {
   return String(numero).replace(/\B(?=(\d{3})+(?!\d))/g, '.');
 }
 
+// 42000 -> "$42.000" y, con signo, "+$42.000" / "−$42.000". Se usan en saldo, detalle y ritual.
+export const pesos = (n) => `$${formatearMonto(Math.round(n))}`;
+export const conSigno = (n) => (Math.round(n) >= 0 ? '+' : '−') + pesos(Math.abs(n));
+
 // Fecha de hoy en formato "2026-10-23" (la que entiende la columna "fecha" de Supabase).
 // Usamos la hora local del teléfono: toISOString() usa hora UTC y de noche podría dar el día siguiente.
 function aTexto(d, dia) {

@@ -6,10 +6,11 @@ import CrearPareja from './src/pantallas/CrearPareja';
 import UnirmeConCodigo from './src/pantallas/UnirmeConCodigo';
 import Principal from './src/pantallas/Principal';
 import AnadirGasto from './src/pantallas/AnadirGasto';
+import Ritual from './src/pantallas/Ritual';
 import { borrarSesion, guardarSesion, leerSesion } from './src/sesion';
 
 // App.js decide qué pantalla se ve según la variable "pantalla":
-// 'inicio' | 'crear' | 'unirme' | 'principal' | 'anadir'
+// 'inicio' | 'crear' | 'unirme' | 'principal' | 'anadir' | 'ritual'
 export default function App() {
   const [pantalla, setPantalla] = useState('inicio');
   const [pareja, setPareja] = useState(null); // { codigo, nombre0, nombre1, yo }
@@ -71,7 +72,16 @@ export default function App() {
         />
       )}
       {!cargando && pantalla === 'principal' && (
-        <Principal pareja={pareja} aviso={aviso} onAnadir={() => setPantalla('anadir')} onSalir={salir} />
+        <Principal
+          pareja={pareja}
+          aviso={aviso}
+          onAnadir={() => setPantalla('anadir')}
+          onRitual={() => setPantalla('ritual')}
+          onSalir={salir}
+        />
+      )}
+      {!cargando && pantalla === 'ritual' && (
+        <Ritual pareja={pareja} onVolver={() => setPantalla('principal')} />
       )}
       {!cargando && pantalla === 'anadir' && (
         <AnadirGasto
