@@ -1,6 +1,6 @@
 import { useState } from 'react';
-import { ActivityIndicator, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
-import { formatearMonto, hoyISO, soloDigitos } from '../formato';
+import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { fechaDeDiaMes, formatearMonto, hace, hoyISO, soloDigitos } from '../formato';
 import { pedir } from '../supabase';
 import { generarId } from '../codigo';
 
@@ -43,7 +43,18 @@ export default function AnadirGasto({ pareja, onCerrar, onGuardado }) {
   const [textoParte, setTextoParte] = useState(''); // lo que escribes: la parte tuya en la fracción
   const [partes, setPartes] = useState(null); // [parte de nombre0, parte de nombre1] ya calculadas
 
+  const [cuando, setCuando] = useState('hoy'); // 'hoy' | 'ayer' | 'otro'
+  const [dia, setDia] = useState(''); // solo se usa con "Otro día"
+  const [mes, setMes] = useState('');
+
   const monto = soloDigitos(textoMonto); // el número real: 42000
+
+  // La fecha del gasto ("2026-10-23"): hoy, ayer o la que escribas. null = fecha inválida.
+  // Esta es la fecha en que OCURRIÓ el gasto; la columna "creado" guarda cuándo se anotó.
+  let fecha = hoyISO();
+  if (cuando === 'ayer') fecha = hace(1);
+  if (cuando === 'otro') fecha = fechaDeDiaMes(Number(dia), Number(mes));
+  const fechaInvalida = fecha === null;
 
   // Nombres según quién soy: yo = 0 o 1
   const nombres = [pareja.nombre0, pareja.nombre1];
@@ -52,6 +63,8 @@ export default function AnadirGasto({ pareja, onCerrar, onGuardado }) {
 
   // Lo elegido hasta ahora, para mostrarlo en el resumen de arriba
   const extra = [];
+  if (cuando === 'ayer') extra.push('Ayer');
+  if (cuando === 'otro' && fecha) extra.push(`${fecha.slice(8, 10)}/${fecha.slice(5, 7)}`);
   if (tipo) extra.push(TIPOS.find((t) => t.valor === tipo).titulo);
   if (pagador !== null) extra.push(`Pagó ${nombres[pagador]}`);
 
@@ -114,7 +127,7 @@ export default function AnadirGasto({ pareja, onCerrar, onGuardado }) {
       monto,
       pagador: indicePagador, // 0 o 1
       tipo,                   // 'mitad' | 'fraccion' | 'invita'
-      fecha: hoyISO(),        // el día en que ocurrió el gasto (hoy)
+      fecha,                  // el día en que ocurrió el gasto (hoy, ayer u otro día)
     };
     // Solo la fracción guarda las dos partes; mitad e invitación no las necesitan
     if (tipo === 'fraccion') {
@@ -264,7 +277,9 @@ export default function AnadirGasto({ pareja, onCerrar, onGuardado }) {
 
   // ---- Paso: monto ----
   return (
-    <View style={styles.contenedor}>
+    // ScrollView: con el teclado abierto y el selector de fecha, todo sigue alcanzable
+    <ScrollView style={{ flex: 1, backgroundColor: '#FAFAF7' }} contentContainerStyle={styles.scroll}
+      keyboardShouldPersistTaps="handled">
       <Text style={styles.titulo}>Añadir gasto</Text>
 
       <Text style={styles.etiqueta}>¿Cuánto fue?</Text>
@@ -291,17 +306,40 @@ export default function AnadirGasto({ pareja, onCerrar, onGuardado }) {
         maxLength={60}
       />
 
+      {/* ¿Cuándo fue? "Hoy" ya viene marcado, así el caso normal no suma toques */}
+      <Text style={styles.etiqueta}>¿Cuándo fue?</Text>
+      <View style={styles.filaFecha}>
+        {[['hoy', 'Hoy'], ['ayer', 'Ayer'], ['otro', 'Otro día']].map(([valor, texto]) => (
+          <Pressable key={valor} onPress={() => setCuando(valor)}
+            style={[styles.chip, cuando === valor && styles.chipActivo]}>
+            <Text style={[styles.chipTexto, cuando === valor && styles.chipTextoActivo]}>{texto}</Text>
+          </Pressable>
+        ))}
+      </View>
+      {cuando === 'otro' && (
+        <View style={styles.filaDiaMes}>
+          <TextInput style={styles.campoFecha} value={dia} onChangeText={(t) => setDia(t.replace(/\D/g, ''))}
+            placeholder="Día" keyboardType="number-pad" maxLength={2} />
+          <Text style={styles.barra}>/</Text>
+          <TextInput style={styles.campoFecha} value={mes} onChangeText={(t) => setMes(t.replace(/\D/g, ''))}
+            placeholder="Mes" keyboardType="number-pad" maxLength={2} />
+          {dia !== '' && mes !== '' && fechaInvalida && (
+            <Text style={styles.errorFecha}>Fecha no válida o futura</Text>
+          )}
+        </View>
+      )}
+
       <Pressable
-        style={[styles.boton, monto === 0 && styles.botonApagado]}
+        style={[styles.boton, (monto === 0 || fechaInvalida) && styles.botonApagado]}
         onPress={() => setPaso('tipo')}
-        disabled={monto === 0} // sin monto no se puede avanzar
+        disabled={monto === 0 || fechaInvalida} // sin monto o con fecha inválida no se avanza
       >
         <Text style={styles.textoBoton}>Siguiente</Text>
       </Pressable>
       <Pressable onPress={onCerrar}>
         <Text style={styles.enlace}>Cancelar</Text>
       </Pressable>
-    </View>
+    </ScrollView>
   );
 }
 
@@ -310,6 +348,18 @@ const ACENTO = '#0F766E';
 const styles = StyleSheet.create({
   // Contenido arriba (no centrado) para que el teclado no lo tape
   contenedor: { flex: 1, backgroundColor: '#FAFAF7', padding: 24, paddingTop: 40 },
+  scroll: { padding: 24, paddingTop: 40, paddingBottom: 60 },
+  filaFecha: { flexDirection: 'row', marginBottom: 14 },
+  chip: { flex: 1, borderWidth: 2, borderColor: ACENTO, borderRadius: 12, paddingVertical: 12,
+    marginRight: 8, backgroundColor: '#fff' },
+  chipActivo: { backgroundColor: ACENTO },
+  chipTexto: { color: ACENTO, fontSize: 16, fontWeight: '600', textAlign: 'center' },
+  chipTextoActivo: { color: '#fff' },
+  filaDiaMes: { flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', marginBottom: 14 },
+  campoFecha: { backgroundColor: '#fff', borderWidth: 1, borderColor: '#D4D4D0', borderRadius: 12,
+    padding: 12, fontSize: 17, width: 80, textAlign: 'center' },
+  barra: { fontSize: 22, color: '#777', marginHorizontal: 10 },
+  errorFecha: { color: '#B91C1C', fontSize: 13, marginLeft: 12 },
   titulo: { fontSize: 26, fontWeight: '700', color: ACENTO, textAlign: 'center', marginBottom: 28 },
   etiqueta: { fontSize: 14, color: '#555', marginBottom: 6 },
   filaMonto: { flexDirection: 'row', alignItems: 'center', borderBottomWidth: 2,

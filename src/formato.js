@@ -21,6 +21,24 @@ export function inicioDeMes() {
   return aTexto(new Date(), '01');
 }
 
+// Fecha de hace N días: hace(1) = ayer. Mismo formato "2026-10-22".
+export function hace(dias) {
+  const d = new Date();
+  d.setDate(d.getDate() - dias); // JS resta bien aunque cambie de mes o de año
+  return aTexto(d, String(d.getDate()).padStart(2, '0'));
+}
+
+// Convierte día y mes escritos a mano (ej. 15 y 10) en "2026-10-15".
+// Devuelve null si la fecha no existe (31/02) o es futura: no se anotan gastos del futuro.
+export function fechaDeDiaMes(dia, mes) {
+  const hoy = new Date();
+  const d = new Date(hoy.getFullYear(), mes - 1, dia);
+  // Si el día no existe, JS la "corrige" a otro mes. Lo detectamos y la rechazamos.
+  if (d.getMonth() !== mes - 1 || d.getDate() !== dia) return null;
+  if (d > hoy) return null;
+  return aTexto(d, String(dia).padStart(2, '0'));
+}
+
 // Nombre legible de cada tipo de movimiento, para mostrarlo en la lista.
 const ETIQUETAS = {
   mitad: 'Mitad', fraccion: 'Fracción', invita: 'Invitación',
