@@ -3,10 +3,44 @@ import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from
 import { pedir } from '../supabase';
 import { hace, hoyISO, pesos } from '../formato';
 import { calcularBalance, describirSaldo } from '../saldo';
-import { META_PORCENTAJE, MINIMO_PARA_JUZGAR, medirHabito } from '../habito';
+import {
+  META_DIARIA, META_PORCENTAJE, diaDeSemana, diasEntre, limitesDelMes, medirPeriodo, semanasDelMes,
+} from '../habito';
 
 // "2026-10-23" -> "23/10"
 const corta = (iso) => `${iso.slice(8, 10)}/${iso.slice(5, 7)}`;
+
+const LETRAS_DIA = ['D', 'L', 'M', 'M', 'J', 'V', 'S']; // indexadas por diaDeSemana (0 = domingo)
+const MESES = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto',
+  'septiembre', 'octubre', 'noviembre', 'diciembre'];
+
+// Medidor de un período: "6/9", el porcentaje y una barra con una raya en la meta (80%).
+// Verde si llega a la meta; ámbar si no (nunca rojo: el ritual es sin culpas).
+function Medidor({ titulo, medida }) {
+  const color = medida.estado === 'logrado' ? '#16A34A' : '#D97706';
+  return (
+    <View style={{ marginTop: 14 }}>
+      <Text style={styles.tituloMedidor}>{titulo}</Text>
+      {medida.estado === 'sin_datos' ? (
+        <Text style={styles.habitoVacio}>Todavía no hay días que medir.</Text>
+      ) : (
+        <>
+          <View style={styles.habitoFila}>
+            <Text style={styles.habitoGrande}>{medida.anotados}/{medida.esperados}</Text>
+            <Text style={[styles.habitoPct, { color }]}>{medida.porcentaje}%</Text>
+          </View>
+          <View style={styles.barraHabitoFondo}>
+            <View style={[styles.barraHabito, { width: `${medida.porcentaje}%`, backgroundColor: color }]} />
+            <View style={[styles.marcaMeta, { left: `${META_PORCENTAJE}%` }]} />
+          </View>
+          {medida.extra > 0 && (
+            <Text style={styles.habitoMeta}>+{medida.extra} de más (no compensan otros días)</Text>
+          )}
+        </>
+      )}
+    </View>
+  );
+}
 
 // Ritual de domingo: resumen de los últimos 7 días (hoy y los 6 días anteriores).
 // pareja: { codigo, nombre0, nombre1, yo }. onVolver: regresar a la pantalla principal.
@@ -67,49 +101,53 @@ export default function Ritual({ pareja, onVolver }) {
   const saldo = describirSaldo(calcularBalance(movimientos).neto, yo, nombres); // saldo de siempre, no solo de la semana
   const colorSaldo = { debo: '#B91C1C', medeben: ACENTO, amano: '#555' }[saldo.clase];
 
-  // Indicador de éxito: de la semana (7 días) y de las últimas 4 semanas (28 días), que es la ventana del README
-  const habitoSemana = medirHabito(movimientos, desde, hasta);
-  const habito4 = medirHabito(movimientos, hace(27), hasta);
-  // Verde si llega a la meta; ámbar si no (nunca rojo: el ritual es sin culpas)
-  const colorHabito = habitoSemana.estado === 'logrado' ? '#16A34A' : '#D97706';
+  // Indicador de éxito (conteo): semana fija de lunes a domingo recortada al mes, y mes calendario
+  const hoy = hoyISO();
+  const semanaActual = semanasDelMes(hoy).find((s) => hoy >= s.desde && hoy <= s.hasta);
+  const declaraciones = []; // Paso 2: aquí llegarán los días en que declararon "ese día hubo menos de 3"
+  const medSemana = medirPeriodo(movimientos, declaraciones, semanaActual.desde, semanaActual.hasta, hoy);
+  const limitesMes = limitesDelMes(hoy);
+  const medMes = medirPeriodo(movimientos, declaraciones, limitesMes.desde, limitesMes.hasta, hoy);
+  const nombreMes = MESES[Number(hoy.slice(5, 7)) - 1];
 
   return (
     <ScrollView style={styles.pantalla} contentContainerStyle={{ padding: 24, paddingBottom: 48 }}>
       <Text style={styles.titulo}>Ritual de domingo</Text>
       <Text style={styles.subtitulo}>Últimos 7 días · {corta(desde)} al {corta(hasta)}</Text>
 
-      {/* Indicador de éxito: gastos anotados el mismo día en que ocurrieron */}
+      {/* Indicador de éxito: gastos compartidos anotados contra lo esperado (3 por día) */}
       <View style={styles.tarjeta}>
-        <Text style={styles.etiqueta}>Gastos anotados el mismo día</Text>
-        {habitoSemana.total === 0 ? (
-          <Text style={styles.habitoVacio}>
-            Esta semana no hubo gastos compartidos para medir. Los días sin gastos no cuentan en contra.
-          </Text>
-        ) : (
-          <>
-            <View style={styles.habitoFila}>
-              <Text style={styles.habitoGrande}>{habitoSemana.mismoDia} de {habitoSemana.total}</Text>
-              <Text style={[styles.habitoPct, { color: colorHabito }]}>{habitoSemana.porcentaje}%</Text>
-            </View>
-            <View style={styles.barraHabitoFondo}>
-              <View style={[styles.barraHabito, { width: `${habitoSemana.porcentaje}%`, backgroundColor: colorHabito }]} />
-              <View style={[styles.marcaMeta, { left: `${META_PORCENTAJE}%` }]} />
-            </View>
-            <Text style={styles.habitoMeta}>Meta: {META_PORCENTAJE}% o más</Text>
-            {habitoSemana.total < MINIMO_PARA_JUZGAR && (
-              <Text style={styles.habitoAviso}>
-                Son pocos gastos y el porcentaje salta mucho. Míralo junto con las últimas 4 semanas.
-              </Text>
-            )}
-          </>
-        )}
-        {habito4.total > 0 && (
-          <Text style={styles.habito4}>
-            Últimas 4 semanas: {habito4.mismoDia} de {habito4.total} ({habito4.porcentaje}%)
-          </Text>
-        )}
+        <Text style={styles.etiqueta}>Gastos compartidos anotados</Text>
+
+        <Medidor titulo={`Semana ${corta(semanaActual.desde)} al ${corta(semanaActual.hasta)}`} medida={medSemana} />
+
+        {/* Tira de la semana: cada día con lo anotado contra su meta */}
+        <View style={styles.tiraDias}>
+          {diasEntre(semanaActual.desde, semanaActual.hasta).map((f) => {
+            const d = medSemana.dias.find((x) => x.fecha === f); // undefined = día que aún no llega
+            return (
+              <View key={f} style={styles.dia}>
+                <Text style={styles.diaLetra}>{LETRAS_DIA[diaDeSemana(f)]}</Text>
+                <View
+                  style={[
+                    styles.diaCaja,
+                    !d && styles.diaFuturo,
+                    d && (d.completo ? styles.diaOk : styles.diaPoco),
+                    f === hoy && styles.diaHoy,
+                  ]}
+                >
+                  <Text style={styles.diaTexto}>{d ? `${d.contados}/${d.objetivo}${d.extra > 0 ? '+' : ''}` : '–'}</Text>
+                </View>
+              </View>
+            );
+          })}
+        </View>
+
+        <Medidor titulo={`Mes de ${nombreMes}`} medida={medMes} />
+
         <Text style={styles.nota}>
-          Cuenta los gastos compartidos (mitad y fracción), no los días: un día sin gastos no pesa.
+          Meta: {META_DIARIA} gastos compartidos por día (mitad y fracción). "Logrado" desde {META_PORCENTAJE}%.
+          Pronto podrás declarar los días en que hubo menos.
         </Text>
       </View>
 
@@ -189,8 +227,17 @@ const styles = StyleSheet.create({
   marcaMeta: { position: 'absolute', top: -3, width: 3, height: 18, backgroundColor: '#444', borderRadius: 2 },
   habitoMeta: { fontSize: 12, color: '#777', marginTop: 6 },
   habitoVacio: { fontSize: 15, color: '#555', marginTop: 6 },
-  habitoAviso: { fontSize: 13, color: '#B45309', marginTop: 8 },
-  habito4: { fontSize: 15, fontWeight: '600', color: ACENTO, marginTop: 12 },
+  tituloMedidor: { fontSize: 15, fontWeight: '600', color: '#444' },
+  tiraDias: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 14 },
+  dia: { alignItems: 'center', flex: 1 },
+  diaLetra: { fontSize: 12, color: '#888', marginBottom: 4 },
+  diaCaja: { width: 40, height: 34, borderRadius: 8, alignItems: 'center', justifyContent: 'center',
+    borderWidth: 2, borderColor: 'transparent' },
+  diaOk: { backgroundColor: '#DDF3E4' },
+  diaPoco: { backgroundColor: '#FDEBC8' },
+  diaFuturo: { backgroundColor: '#F0F0EE' },
+  diaHoy: { borderColor: ACENTO }, // contorno en el día de hoy
+  diaTexto: { fontSize: 12, fontWeight: '700', color: '#333' },
   nota: { fontSize: 12, color: '#888', marginTop: 10 },
   saldo: { fontSize: 24, fontWeight: '700', marginTop: 4 },
   vacio: { fontSize: 15, color: '#777', textAlign: 'center' },
