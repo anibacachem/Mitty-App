@@ -1,12 +1,13 @@
 import { useEffect, useState } from 'react';
-import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { cargarTodo } from '../datos';
 import DiaDeclarable from '../componentes/DiaDeclarable';
 import BotonInfo from '../componentes/BotonInfo';
-import { hoyISO, pesos } from '../formato';
+import { fechaDeDiaMes, hoyISO, pesos } from '../formato';
 import { calcularBalance, describirSaldo } from '../saldo';
 import {
-  META_DIARIA, META_PORCENTAJE, diaDeSemana, diasEntre, limitesDelMes, medirPeriodo, semanasDelMes,
+  META_DIARIA, META_PORCENTAJE, diaDeSemana, diasEntre, limitesDelMes, medirPeriodo, semanaQueContiene,
+  semanasDelMes, sumarDias,
 } from '../habito';
 import { mensajeRitual } from '../mensajes';
 
@@ -51,6 +52,23 @@ export default function Ritual({ pareja, onVolver }) {
   const [diaSel, setDiaSel] = useState(null); // día tocado en la tira (null = hoy)
   const [error, setError] = useState('');
   const [infoResumen, setInfoResumen] = useState(false); // explicación del Resumen (botón i)
+  const [semanaResumen, setSemanaResumen] = useState(null); // semana que muestra el Resumen (null = la actual)
+  const [verSelector, setVerSelector] = useState(false); // caja para escribir una fecha
+  const [diaTxt, setDiaTxt] = useState('');
+  const [mesTxt, setMesTxt] = useState('');
+  const [errorFecha, setErrorFecha] = useState('');
+
+  // Ir a la semana que contiene la fecha que escribió (solo fechas pasadas o de hoy, del año en curso)
+  function irAFecha() {
+    const f = fechaDeDiaMes(Number(diaTxt), Number(mesTxt));
+    if (!f) {
+      setErrorFecha('Esa fecha no existe o es futura.');
+      return;
+    }
+    setErrorFecha('');
+    setSemanaResumen(semanaQueContiene(f));
+    setVerSelector(false);
+  }
 
   // Pedimos todos los movimientos y los días declarados: la semana sale de filtrarlos y el saldo usa todos
   async function cargar() {
@@ -114,8 +132,10 @@ export default function Ritual({ pareja, onVolver }) {
   const dSel = medSemana.dias.find((x) => x.fecha === seleccionado); // undefined = día que aún no llega
   const declSel = declaraciones.find((x) => x.fecha === seleccionado);
 
-  // ---- Resumen corto de la misma semana ----
-  const semana = movimientos.filter((m) => m.fecha >= semanaActual.desde && m.fecha <= semanaActual.hasta);
+  // ---- Resumen de la semana elegida (por defecto, la actual) ----
+  const semanaRes = semanaResumen ?? semanaActual;
+  const esSemanaActual = semanaRes.desde === semanaActual.desde;
+  const semana = movimientos.filter((m) => m.fecha >= semanaRes.desde && m.fecha <= semanaRes.hasta);
   const gastosSemana = semana.filter((m) => m.tipo !== 'pago'); // un pago entre ustedes no es un gasto
   const total = gastosSemana.reduce((suma, m) => suma + Number(m.monto), 0);
   const pagoPorPersona = calcularBalance(semana).gastado; // cuánto gastó (puso de su bolsillo) cada uno esta semana
@@ -199,8 +219,50 @@ export default function Ritual({ pareja, onVolver }) {
           <Text style={styles.etiqueta}>Resumen de la semana</Text>
           <BotonInfo activo={infoResumen} onPress={() => setInfoResumen(!infoResumen)} />
         </View>
+        {/* Navegación: flecha atrás = semana anterior, flecha adelante = semana siguiente (hasta la actual) */}
+        <View style={styles.navSemana}>
+          <Pressable style={styles.flecha} hitSlop={8}
+            onPress={() => setSemanaResumen(semanaQueContiene(sumarDias(semanaRes.desde, -1)))}>
+            <Text style={styles.flechaTexto}>‹</Text>
+          </Pressable>
+          <Text style={styles.navTexto}>
+            {corta(semanaRes.desde)} al {corta(semanaRes.hasta)}{esSemanaActual ? ' · esta semana' : ''}
+          </Text>
+          <Pressable style={[styles.flecha, esSemanaActual && styles.flechaOff]} hitSlop={8} disabled={esSemanaActual}
+            onPress={() => {
+              const sig = semanaQueContiene(sumarDias(semanaRes.hasta, 1));
+              setSemanaResumen(sig.desde === semanaActual.desde ? null : sig); // al llegar a la actual, volvemos a "null"
+            }}>
+            <Text style={styles.flechaTexto}>›</Text>
+          </Pressable>
+        </View>
+        <View style={styles.navAcciones}>
+          <Pressable onPress={() => { setVerSelector(!verSelector); setErrorFecha(''); }}>
+            <Text style={styles.enlaceChico}>Elegir fecha</Text>
+          </Pressable>
+          {!esSemanaActual && (
+            <Pressable onPress={() => { setSemanaResumen(null); setVerSelector(false); }}>
+              <Text style={styles.enlaceChico}>Volver a esta semana</Text>
+            </Pressable>
+          )}
+        </View>
+        {verSelector && (
+          <View style={styles.selectorFila}>
+            <Text style={styles.selectorTexto}>Día</Text>
+            <TextInput style={styles.selectorInput} value={diaTxt} onChangeText={setDiaTxt} placeholder="DD"
+              keyboardType="number-pad" maxLength={2} />
+            <Text style={styles.selectorTexto}>/</Text>
+            <TextInput style={styles.selectorInput} value={mesTxt} onChangeText={setMesTxt} placeholder="MM"
+              keyboardType="number-pad" maxLength={2} />
+            <Pressable style={styles.selectorIr} onPress={irAFecha}>
+              <Text style={styles.selectorIrTexto}>Ir</Text>
+            </Pressable>
+          </View>
+        )}
+        {errorFecha !== '' && <Text style={styles.errorFecha}>{errorFecha}</Text>}
+
         {gastosSemana.length === 0 ? (
-          <Text style={styles.vacio}>Todavía no hay gastos esta semana.</Text>
+          <Text style={styles.vacio}>{esSemanaActual ? 'Todavía no hay gastos esta semana.' : 'No hay gastos en esa semana.'}</Text>
         ) : (
           <>
             <View style={styles.filaResumen}>
@@ -223,10 +285,11 @@ export default function Ritual({ pareja, onVolver }) {
         {/* Explicación al pie de la caja, con el mismo formato (tamaño, color, "X = ...") que el Detalle del saldo */}
         {infoResumen && (
           <Text style={styles.nota}>
-            Gasto total = gastos anotados con fecha de esta semana (lunes a domingo, recortada al mes), incluidas
-            invitaciones y personales; los pagos entre ustedes no cuentan. Gastó = todo lo que cada uno puso de su
-            bolsillo. Saldo actual = todo lo anotado y aún no saldado, no solo esta semana. El medidor de arriba
-            cuenta solo los gastos compartidos.
+            Gasto total = gastos anotados con fecha de la semana elegida (lunes a domingo, recortada al mes), incluidas
+            invitaciones y personales; los pagos entre ustedes no cuentan. Gastó = lo que cada uno puso de su
+            bolsillo esa semana. Las flechas cambian de semana y "Elegir fecha" salta a la semana de ese día (del año
+            en curso). Saldo actual = todo lo anotado y aún no saldado, no solo esa semana. El medidor de arriba
+            cuenta solo los gastos compartidos de esta semana.
           </Text>
         )}
       </View>
@@ -278,6 +341,21 @@ const styles = StyleSheet.create({
   nota: { fontSize: 12, color: '#888', marginTop: 10 },
   // Resumen
   tarjetaArriba: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  navSemana: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+    backgroundColor: '#F6F6F3', borderRadius: 12, paddingVertical: 6, paddingHorizontal: 6, marginBottom: 6 },
+  flecha: { width: 40, height: 36, alignItems: 'center', justifyContent: 'center' },
+  flechaOff: { opacity: 0.25 },
+  flechaTexto: { fontSize: 28, color: ACENTO, fontWeight: '700', lineHeight: 32 },
+  navTexto: { fontSize: 15, fontWeight: '700', color: '#222' },
+  navAcciones: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 8 },
+  enlaceChico: { color: ACENTO, fontSize: 13, fontWeight: '600', paddingVertical: 4 },
+  selectorFila: { flexDirection: 'row', alignItems: 'center', marginBottom: 8 },
+  selectorTexto: { fontSize: 15, color: '#555', marginHorizontal: 6 },
+  selectorInput: { borderWidth: 1, borderColor: '#D5D5D0', borderRadius: 8, width: 52, paddingVertical: 6,
+    textAlign: 'center', fontSize: 16, backgroundColor: '#fff' },
+  selectorIr: { backgroundColor: ACENTO, borderRadius: 8, paddingVertical: 8, paddingHorizontal: 18, marginLeft: 12 },
+  selectorIrTexto: { color: '#fff', fontWeight: '700', fontSize: 15 },
+  errorFecha: { color: '#B91C1C', fontSize: 13, marginBottom: 8 },
   filaResumen: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
     paddingVertical: 5 },
   resumenEtiqueta: { fontSize: 15, color: '#555', flexShrink: 1, paddingRight: 8 },

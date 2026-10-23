@@ -23,7 +23,7 @@ function aISO(d) {
   const dia = String(d.getDate()).padStart(2, '0');
   return `${d.getFullYear()}-${mes}-${dia}`;
 }
-function sumarDias(iso, n) {
+export function sumarDias(iso, n) {
   const d = aFecha(iso);
   d.setDate(d.getDate() + n);
   return aISO(d);
@@ -64,6 +64,11 @@ export function semanasDelMes(fecha) {
     inicio = sumarDias(fin, 1);
   }
   return semanas;
+}
+
+// La semana fija (lunes a domingo, recortada al mes) que contiene una fecha. Ej. "2026-10-14" -> 12 al 18 de octubre.
+export function semanaQueContiene(fecha) {
+  return semanasDelMes(fecha).find((s) => fecha >= s.desde && fecha <= s.hasta);
 }
 
 // Mide un período (una semana o un mes) día por día.
