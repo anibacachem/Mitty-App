@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { ActivityIndicator, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import * as Clipboard from 'expo-clipboard';
 import { pedir } from '../supabase';
 import { generarCodigo } from '../codigo';
 
@@ -11,6 +12,14 @@ export default function CrearPareja({ onVolver, onListo }) {
   const [guardando, setGuardando] = useState(false);
   const [error, setError] = useState('');
   const [creada, setCreada] = useState(null); // al crear, guarda { codigo, nombre0, nombre1 }
+  const [copiado, setCopiado] = useState(false); // true por 2 segundos tras copiar
+
+  // Copia el código al portapapeles del teléfono para pegarlo en otra app (WhatsApp, etc.)
+  async function copiarCodigo() {
+    await Clipboard.setStringAsync(creada.codigo);
+    setCopiado(true);
+    setTimeout(() => setCopiado(false), 2000); // el aviso "¡Copiado!" se apaga solo
+  }
 
   async function crear() {
     // Validación simple: los dos nombres son obligatorios
@@ -41,6 +50,9 @@ export default function CrearPareja({ onVolver, onListo }) {
         <Text style={styles.titulo}>¡Pareja creada!</Text>
         <Text style={styles.ayuda}>Comparte este código con {creada.nombre1} para que se una:</Text>
         <Text style={styles.codigo} selectable>{creada.codigo}</Text>
+        <Pressable style={styles.botonCopiar} onPress={copiarCodigo}>
+          <Text style={styles.textoCopiar}>{copiado ? '¡Copiado!' : 'Copiar código'}</Text>
+        </Pressable>
         <Pressable style={styles.boton} onPress={() => onListo(creada)}>
           <Text style={styles.textoBoton}>Continuar</Text>
         </Pressable>
@@ -87,5 +99,8 @@ const styles = StyleSheet.create({
   volver: { color: ACENTO, fontSize: 16, textAlign: 'center', marginTop: 18 },
   ayuda: { fontSize: 16, color: '#555', textAlign: 'center', marginBottom: 20 },
   codigo: { fontSize: 34, fontWeight: '700', letterSpacing: 4, color: '#222', textAlign: 'center',
-    marginBottom: 32 },
+    marginBottom: 20 },
+  botonCopiar: { borderWidth: 2, borderColor: ACENTO, paddingVertical: 14, borderRadius: 16,
+    marginBottom: 12 },
+  textoCopiar: { color: ACENTO, fontSize: 17, fontWeight: '600', textAlign: 'center' },
 });

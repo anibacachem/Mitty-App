@@ -5,3 +5,4 @@
 - fix: mostrar el motivo del error de conexión | archivos: src/pantallas/Inicio.js, bitacora.md | motivo: diagnosticar "No hay conexión" en la pantalla de inicio
 - docs: README, CLAUDE.md y .env.example completos | archivos: README.md, CLAUDE.md, .env.example, bitacora.md | motivo: dejar documentado el proyecto; la URL de Supabase se corrigió en .env (sin /rest/v1) y la conexión ya funciona
 - feat: crear pareja con código de 10 caracteres | archivos: App.js, src/codigo.js, src/pantallas/CrearPareja.js, bitacora.md | motivo: Fase 1 paso 2, guardar la pareja en la tabla parejas
+- feat: botón para copiar el código de pareja | archivos: src/pantallas/CrearPareja.js, package.json, package-lock.json, bitacora.md | motivo: pasar el código al otro teléfono sin dictarlo (expo-clipboard)
