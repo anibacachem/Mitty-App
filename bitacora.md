@@ -31,3 +31,4 @@
 - style: día de la semana en la fecha de cada gasto | archivos: src/formato.js, src/pantallas/Principal.js, bitacora.md | motivo: segunda vuelta; la fila dice "jue 22/10" y el orden se entiende de un vistazo
 - docs: README con los cambios de la segunda vuelta | archivos: README.md, bitacora.md | motivo: reflejar "Al día", detalle en palabras, caja con filtros y orden, pago a nombre de quien debe y exportar pospuesto
 - style: Resumen de la semana con "gastó", "Gasto total" y botón (i) | archivos: src/componentes/BotonInfo.js, src/pantallas/Ritual.js, bitacora.md | motivo: segunda vuelta; mismo vocabulario que la pantalla principal y explicación de qué considera el resumen
+- style: explicación del Resumen con el mismo formato que el Detalle del saldo | archivos: src/pantallas/Ritual.js, bitacora.md | motivo: segunda vuelta; la nota (i) va al pie de la caja, en texto pequeño gris con formato "X = ..."

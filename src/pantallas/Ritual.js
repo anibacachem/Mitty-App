@@ -199,14 +199,6 @@ export default function Ritual({ pareja, onVolver }) {
           <Text style={styles.etiqueta}>Resumen de la semana</Text>
           <BotonInfo activo={infoResumen} onPress={() => setInfoResumen(!infoResumen)} />
         </View>
-        {infoResumen && (
-          <Text style={styles.notaInfo}>
-            Suma los gastos anotados con fecha de esta semana (lunes a domingo, recortada al mes): mitad, fracción,
-            "era del otro", invitaciones y personales. Los pagos entre ustedes no cuentan como gasto. "Gastó" es todo
-            lo que cada uno puso de su bolsillo, invitaciones incluidas. El medidor de arriba, en cambio, cuenta solo
-            los gastos compartidos. El saldo actual no es solo de la semana: suma todo lo anotado y aún no saldado.
-          </Text>
-        )}
         {gastosSemana.length === 0 ? (
           <Text style={styles.vacio}>Todavía no hay gastos esta semana.</Text>
         ) : (
@@ -228,6 +220,15 @@ export default function Ritual({ pareja, onVolver }) {
         <View style={styles.separador} />
         <Text style={styles.resumenEtiqueta}>Saldo actual</Text>
         <Text style={[styles.saldo, { color: colorSaldo }]}>{saldo.texto}</Text>
+        {/* Explicación al pie de la caja, con el mismo formato (tamaño, color, "X = ...") que el Detalle del saldo */}
+        {infoResumen && (
+          <Text style={styles.nota}>
+            Gasto total = gastos anotados con fecha de esta semana (lunes a domingo, recortada al mes), incluidas
+            invitaciones y personales; los pagos entre ustedes no cuentan. Gastó = todo lo que cada uno puso de su
+            bolsillo. Saldo actual = todo lo anotado y aún no saldado, no solo esta semana. El medidor de arriba
+            cuenta solo los gastos compartidos.
+          </Text>
+        )}
       </View>
 
       <Pressable style={styles.boton} onPress={onVolver}>
@@ -277,8 +278,6 @@ const styles = StyleSheet.create({
   nota: { fontSize: 12, color: '#888', marginTop: 10 },
   // Resumen
   tarjetaArriba: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  notaInfo: { fontSize: 13, color: '#666', backgroundColor: '#F6F6F3', borderRadius: 10, padding: 10,
-    marginBottom: 8, lineHeight: 18 },
   filaResumen: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
     paddingVertical: 5 },
   resumenEtiqueta: { fontSize: 15, color: '#555', flexShrink: 1, paddingRight: 8 },
