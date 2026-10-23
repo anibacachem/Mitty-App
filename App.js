@@ -5,10 +5,11 @@ import Inicio from './src/pantallas/Inicio';
 import CrearPareja from './src/pantallas/CrearPareja';
 import UnirmeConCodigo from './src/pantallas/UnirmeConCodigo';
 import Principal from './src/pantallas/Principal';
+import AnadirGasto from './src/pantallas/AnadirGasto';
 import { borrarSesion, guardarSesion, leerSesion } from './src/sesion';
 
 // App.js decide qué pantalla se ve según la variable "pantalla":
-// 'inicio' | 'crear' | 'unirme' | 'principal'
+// 'inicio' | 'crear' | 'unirme' | 'principal' | 'anadir'
 export default function App() {
   const [pantalla, setPantalla] = useState('inicio');
   const [pareja, setPareja] = useState(null); // { codigo, nombre0, nombre1, yo }
@@ -61,7 +62,12 @@ export default function App() {
           onListo={entrar} // ya trae "yo" (0 o 1) según lo que elegiste
         />
       )}
-      {!cargando && pantalla === 'principal' && <Principal pareja={pareja} onSalir={salir} />}
+      {!cargando && pantalla === 'principal' && (
+        <Principal pareja={pareja} onAnadir={() => setPantalla('anadir')} onSalir={salir} />
+      )}
+      {!cargando && pantalla === 'anadir' && (
+        <AnadirGasto pareja={pareja} onCerrar={() => setPantalla('principal')} />
+      )}
     </SafeAreaView>
   );
 }

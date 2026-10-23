@@ -8,3 +8,4 @@
 - feat: botón para copiar el código de pareja | archivos: src/pantallas/CrearPareja.js, package.json, package-lock.json, bitacora.md | motivo: pasar el código al otro teléfono sin dictarlo (expo-clipboard)
 - feat: unirme con código y elegir quién soy | archivos: App.js, src/pantallas/UnirmeConCodigo.js, bitacora.md | motivo: Fase 1 paso 3, buscar la pareja en Supabase y guardar si soy nombre0 o nombre1
 - feat: guardar la sesión y pantalla principal | archivos: App.js, src/sesion.js, src/pantallas/Principal.js, package.json, package-lock.json, bitacora.md | motivo: Fase 1 paso 4, recordar pareja y quién soy con AsyncStorage
+- feat: botón Añadir gasto y paso de monto | archivos: App.js, src/formato.js, src/pantallas/AnadirGasto.js, src/pantallas/Principal.js, bitacora.md | motivo: Fase 2 paso 1, flujo guiado (monto con puntos de miles y descripción opcional)

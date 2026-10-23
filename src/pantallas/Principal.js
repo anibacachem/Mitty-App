@@ -5,7 +5,7 @@ import * as Clipboard from 'expo-clipboard';
 // Pantalla principal: saluda, muestra el código de la pareja y permite salir.
 // Aquí irán después el campo para anotar gastos, la lista y el saldo (Fases 2 y 3).
 // pareja: { codigo, nombre0, nombre1, yo }. onSalir: cerrar sesión.
-export default function Principal({ pareja, onSalir }) {
+export default function Principal({ pareja, onAnadir, onSalir }) {
   const [copiado, setCopiado] = useState(false);
 
   // yo es 0 o 1: elegimos mi nombre y el de la otra persona
@@ -31,6 +31,10 @@ export default function Principal({ pareja, onSalir }) {
         </Pressable>
       </View>
 
+      <Pressable style={styles.botonAnadir} onPress={onAnadir}>
+        <Text style={styles.textoAnadir}>+ Añadir gasto</Text>
+      </Pressable>
+
       <Pressable onPress={onSalir}>
         <Text style={styles.salir}>Cerrar sesión</Text>
       </Pressable>
@@ -49,5 +53,7 @@ const styles = StyleSheet.create({
   etiqueta: { fontSize: 13, color: '#777', marginBottom: 6 },
   codigo: { fontSize: 28, fontWeight: '700', letterSpacing: 3, color: '#222', marginBottom: 10 },
   copiar: { color: ACENTO, fontSize: 16, fontWeight: '600' },
+  botonAnadir: { backgroundColor: ACENTO, paddingVertical: 20, borderRadius: 16, marginTop: 28 },
+  textoAnadir: { color: '#fff', fontSize: 20, fontWeight: '700', textAlign: 'center' },
   salir: { color: '#B91C1C', fontSize: 15, textAlign: 'center', marginTop: 40 },
 });
