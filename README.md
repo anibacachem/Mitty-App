@@ -26,7 +26,7 @@ Limitación: el indicador mide cuánto se anota, no si se anota el mismo día, y
 2. Anotar un gasto en pocos toques: monto, cómo se reparte (mitad, fracción o invitación), quién pagó y la fecha (hoy, ayer u otro día).
 3. Lista y saldo compartidos, sincronizados entre los dos teléfonos cada 5 segundos, con el detalle de cuánto pagó y cuánto le tocaba a cada uno.
 4. Ritual de domingo: un mensaje amable, el conteo de gastos anotados de la semana y del mes, y la posibilidad de declarar los días en que hubo menos gastos.
-5. Cierre de mes: registrar el pago y dejar el saldo en cero (en construcción).
+5. Cierre de mes: resumen del mes y un botón para registrar el pago del que debe, con confirmación, que deja el saldo en cero.
 
 ## Qué dejamos fuera, y por qué
 

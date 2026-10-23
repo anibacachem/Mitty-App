@@ -4,14 +4,14 @@ import * as Clipboard from 'expo-clipboard';
 import { cargarTodo } from '../datos';
 import { conSigno, etiquetaTipo, hoyISO, inicioDeMes, pesos } from '../formato';
 import { calcularBalance, describirSaldo, textoReparto } from '../saldo';
-import { medirPeriodo } from '../habito';
+import { limitesDelMes, medirPeriodo } from '../habito';
 import DiaDeclarable from '../componentes/DiaDeclarable';
 
 const CADA_CUANTO_MS = 5000; // los datos se refrescan solos cada 5 segundos
 
 // Pantalla principal: saludo, saldo, detalle, botón de añadir y lista de gastos del mes.
 // pareja: { codigo, nombre0, nombre1, yo }. aviso: mensaje corto arriba (ej. "Gasto anotado").
-export default function Principal({ pareja, aviso, onAnadir, onRitual, onSalir }) {
+export default function Principal({ pareja, aviso, onAnadir, onRitual, onCierre, onSalir }) {
   const [copiado, setCopiado] = useState(false);
   const [movimientos, setMovimientos] = useState([]);
   const [declaraciones, setDeclaraciones] = useState([]); // días declarados con menos de 3 gastos
@@ -76,6 +76,7 @@ export default function Principal({ pareja, aviso, onAnadir, onRitual, onSalir }
   const hoy = hoyISO();
   const diaHoy = medirPeriodo(movimientos, declaraciones, hoy, hoy, hoy).dias[0];
   const declaracionHoy = declaraciones.find((d) => d.fecha === hoy);
+  const esFinDeMes = hoy === limitesDelMes(hoy).hasta; // último día del mes: toca el cierre
 
   // Solo los gastos de este mes van en la lista (el saldo usa todos)
   const delMes = movimientos.filter((m) => m.fecha >= inicioDeMes());
@@ -179,6 +180,13 @@ export default function Principal({ pareja, aviso, onAnadir, onRitual, onSalir }
       <Pressable style={[styles.botonRitual, esDomingo && styles.botonRitualHoy]} onPress={onRitual}>
         <Text style={[styles.textoRitual, esDomingo && styles.textoRitualHoy]}>
           {esDomingo ? 'Hoy toca el ritual de domingo' : 'Ritual de domingo'}
+        </Text>
+      </Pressable>
+
+      {/* Cierre de mes: siempre disponible; el último día del mes se resalta */}
+      <Pressable style={[styles.botonRitual, esFinDeMes && styles.botonRitualHoy]} onPress={onCierre}>
+        <Text style={[styles.textoRitual, esFinDeMes && styles.textoRitualHoy]}>
+          {esFinDeMes ? 'Hoy toca el cierre de mes' : 'Cierre de mes'}
         </Text>
       </Pressable>
 
