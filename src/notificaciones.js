@@ -6,10 +6,6 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const CLAVE = 'mitty_recordatorios'; // cajón donde guardamos si están activados ("1") o no ("0")
 const CANAL = 'recordatorios'; // en Android toda notificación necesita un "canal"
-const CLAVE_ATENDIDA = 'mitty_notificacion_atendida'; // la última notificación que ya abrimos (para no repetirla)
-
-// Dato que viaja dentro de cada recordatorio: le dice a la app qué hacer al tocarlo
-export const ACCION_ANOTAR = { abrir: 'anadir' };
 
 // Qué hacer si llega una notificación con la app abierta: mostrarla igual, sin sonido
 Notifications.setNotificationHandler({
@@ -55,7 +51,6 @@ export async function notificacionDePrueba(nombre) {
     content: {
       title: 'Mitty',
       body: `${nombre}, así se verán tus recordatorios. ¿Anotamos un gasto?`,
-      data: ACCION_ANOTAR, // al tocarla, la app abre directo "Añadir gasto"
     },
     trigger: {
       type: Notifications.SchedulableTriggerInputTypes.TIME_INTERVAL,
@@ -94,7 +89,7 @@ export async function programarRecordatorios(nombre) {
   for (const h of HORARIOS) {
     await Notifications.scheduleNotificationAsync({
       identifier: h.id,
-      content: { title: 'Mitty', body: h.texto(nombre), data: ACCION_ANOTAR },
+      content: { title: 'Mitty', body: h.texto(nombre) },
       trigger: {
         type: Notifications.SchedulableTriggerInputTypes.DAILY,
         hour: h.hora,
@@ -103,20 +98,4 @@ export async function programarRecordatorios(nombre) {
       },
     });
   }
-}
-
-// ¿Qué hacer cuando la persona toca una notificación? Devuelve una "clave" única de esa notificación
-// si es un recordatorio nuevo que pide abrir "Añadir gasto"; si no, null.
-// Revisa en el teléfono que no la hayamos atendido ya: así, abrir la app otro día no vuelve a saltar a "Añadir gasto".
-export async function atenderToque(respuesta) {
-  if (!respuesta || respuesta.actionIdentifier !== Notifications.DEFAULT_ACTION_IDENTIFIER) return null;
-  if (respuesta.notification.request.content.data?.abrir !== ACCION_ANOTAR.abrir) return null;
-  const clave = `${respuesta.notification.request.identifier}|${respuesta.notification.date}`;
-  try {
-    if ((await AsyncStorage.getItem(CLAVE_ATENDIDA)) === clave) return null; // ya la atendimos
-    await AsyncStorage.setItem(CLAVE_ATENDIDA, clave);
-  } catch {
-    // si el cajón falla, igual abrimos: es mejor eso que ignorar el toque
-  }
-  return clave;
 }

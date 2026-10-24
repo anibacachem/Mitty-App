@@ -41,7 +41,7 @@ Limitación: la app no sabe cuántos gastos hubo en realidad. Un gasto que nadie
 - **Inicio de sesión:** el acceso es por código de pareja, suficiente para un prototipo. Con datos reales haría falta iniciar sesión.
 - **Varias parejas por cuenta:** no cambia la hipótesis que queremos probar.
 - **Penalizar anotar tarde:** se muestra cuántos gastos se anotaron en el momento, pero no resta puntos, para no castigar a quien anota después.
-- **Abrir "Añadir gasto" al tocar un recordatorio:** el código existe, pero no se logró verificar en el teléfono; hoy el aviso solo abre la app.
+- **Abrir "Añadir gasto" al tocar un recordatorio:** lo probamos y no funcionó, así que se quitó; hoy el aviso solo abre la app.
 - **Recordatorios inteligentes, widget y accesos rápidos:** los recordatorios del engranaje son tres avisos fijos al día (10:00, 15:00 y 20:00); que se salten cuando ya anotaste, un widget y los accesos rápidos quedaron para una siguiente versión.
 - **Mejoras de Mitty AI:** corregir un campo sin repetir la frase, y más idiomas o acentos en la voz.
 
@@ -64,7 +64,7 @@ La capa gratuita de Gemini puede usar el contenido para mejorar productos de Goo
 
 El guion de la presentación de 5 minutos está en [DEMO.md](DEMO.md).
 
-Demo con una pareja ficticia: [código de la pareja de demo]. Versión web: [link, si existe].
+Demo con una pareja ficticia: [código de la pareja de demo].
 
 ## Equipo y notas
 

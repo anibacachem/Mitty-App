@@ -75,3 +75,5 @@
 - chore: se quita la fuente Fredoka sin uso y se guarda la configuración pendiente | archivos: package.json, package-lock.json, app.json, tsconfig.json, .env.example, CLAUDE.md | motivo: dejar el repositorio limpio y sin dependencias de más
 - docs: guion de demo de 5 minutos (DEMO.md) y README con el costo del fin de mes | archivos: DEMO.md, README.md | motivo: preparar el pitch con problema, intentos, por qué una app, demo, progreso y cierre
 - docs: se quita la promesa de que el recordatorio abre Añadir gasto (no verificada) | archivos: README.md, DEMO.md | motivo: no afirmar en la entrega algo que no funciona en el teléfono
+- chore: se descarta la versión web; la demo se proyecta desde Expo Go y se quita el toque al aviso que no funcionaba | archivos: App.js, src/notificaciones.js, README.md | motivo: la demo se presenta con el celular conectado a la TV
+- chore: se elimina todo lo de la versión web (librerías, script web y configuración) | archivos: package.json, app.json, README.md, src/avisos.js (borrar), vercel.json (borrar), assets/favicon.png (borrar) | motivo: la demo se presenta desde Expo Go

@@ -14,8 +14,7 @@ import CierreMes from './src/pantallas/CierreMes';
 import AsistenteIA from './src/pantallas/AsistenteIA';
 import { ACENTO, FONDO } from './src/colores';
 import { borrarSesion, guardarSesion, leerSesion } from './src/sesion';
-import * as Notifications from 'expo-notifications';
-import { atenderToque, cancelarRecordatorios, guardarActivado } from './src/notificaciones';
+import { cancelarRecordatorios, guardarActivado } from './src/notificaciones';
 
 // A qué pantalla se vuelve desde cada una. Las que no están aquí (inicio y principal) son "raíz": no hay atrás.
 const DESTINO_ATRAS = {
@@ -35,10 +34,6 @@ export default function App() {
   const [pantalla, setPantalla] = useState('inicio');
   const [pareja, setPareja] = useState(null); // { codigo, nombre0, nombre1, yo }
   const [cargando, setCargando] = useState(true); // true mientras leemos la sesión guardada
-  // Si la persona toca un recordatorio, abrimos directo "Añadir gasto" (funciona con la app cerrada o abierta).
-  // useLastNotificationResponse entrega el último toque; atenderToque evita repetirlo en cada apertura.
-  const toqueNotificacion = Notifications.useLastNotificationResponse();
-
   // Letra redondeada y ancha para el saludo. Si no logra cargar, la app sigue con la letra normal.
   const [fuentesListas, errorFuentes] = useFonts({ Nunito_700Bold, Nunito_800ExtraBold });
   const esperando = cargando || !(fuentesListas || errorFuentes); // mostramos el logo hasta tener sesión y letra
@@ -123,14 +118,6 @@ export default function App() {
       setCargando(false);
     });
   }, []);
-
-  // Cuando ya hay sesión y la app terminó de cargar, atendemos el toque a un recordatorio (si lo hubo)
-  useEffect(() => {
-    if (!toqueNotificacion || esperando || !pareja) return;
-    atenderToque(toqueNotificacion).then((clave) => {
-      if (clave) setPantalla('anadir');
-    });
-  }, [toqueNotificacion, esperando, pareja]);
 
   // Entrar a la app: guarda la sesión en el teléfono y muestra la pantalla principal.
   async function entrar(datos) {
