@@ -56,3 +56,4 @@
 - feat: Invitación y Gasto personal separan de quién es el gasto y quién pagó | archivos: supabase/dueno.sql, src/saldo.js, src/pantallas/AnadirGasto.js, src/pantallas/Principal.js | motivo: si paga el otro, el dueño le debe todo
 - feat: Mitty AI entiende quién invitó/de quién es y quién pagó | archivos: supabase/functions/interpretar-gasto/index.ts, src/pantallas/AsistenteIA.js | motivo: reflejar por texto y voz lo mismo que el flujo manual
 - feat: Detalle del saldo en dos grupos y filtro Personales e invitaciones | archivos: src/saldo.js, src/pantallas/Principal.js | motivo: separar gastos compartidos de personales/invitaciones y que los personales aparezcan en un filtro
+- docs: README y esquema al día con dueño del gasto y Detalle en dos grupos | archivos: README.md, supabase/esquema.sql | motivo: dejar documentada la nueva lógica y la columna dueno

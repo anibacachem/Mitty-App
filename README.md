@@ -23,9 +23,9 @@ Limitación: el indicador mide cuánto se anota, no si se anota el mismo día, y
 ## Qué construimos
 
 1. Crear la pareja con un código (se puede copiar) y unirse desde otro teléfono.
-2. Anotar un gasto en pocos toques: monto, cómo se reparte (mitad, fracción o invitación), quién pagó y la fecha (hoy, ayer u otro día).
-3. Lista y saldo compartidos, sincronizados entre los dos teléfonos cada 5 segundos. El saldo dice "Al día", "Le debes $X a Y" o "Y te debe $X". El detalle muestra el gasto total y lo que le correspondía a cada uno, los pagos entre ustedes y el resultado en palabras ("Debe" / "Le deben"); el botón (i) explica cada concepto.
-   Los gastos del mes van en una caja con scroll propio (unos 5 visibles), con el total (N), filtros (Todos, Compartidos, Invitaciones, Pagos) y orden por fecha del gasto, con un botón para invertirlo. En la lista, "Gastó" es un gasto anotado y "Pagó" es un pago entre ustedes.
+2. Anotar un gasto en pocos toques: monto, cómo se reparte (mitad, fracción, invitación o gasto personal), quién pagó y la fecha (hoy, ayer u otro día). En invitación y gasto personal se pregunta además quién invitó o de quién es el gasto: si pagó la otra persona, el dueño le debe todo.
+3. Lista y saldo compartidos, sincronizados entre los dos teléfonos cada 5 segundos. El saldo dice "Al día", "Le debes $X a Y" o "Y te debe $X". El detalle es del mes en curso y va en dos grupos, "Gastos compartidos" y "Gastos personales e invitaciones", con el gasto total y lo que le correspondía a cada uno; abajo, los pagos entre ustedes y el resultado en palabras ("Debe" / "Le deben"); el botón (i) explica cada concepto.
+   Los gastos del mes van en una caja con scroll propio (unos 5 visibles), con el total (N), filtros (Todos, Compartidos, Personales e invitaciones, Pagos) y orden por fecha del gasto, con un botón para invertirlo. En la lista, "Gastó" es un gasto anotado y "Pagó" es un pago entre ustedes.
 4. Ritual de domingo: un mensaje amable, el conteo de gastos anotados de la semana y del mes, y la posibilidad de declarar los días en que hubo menos gastos.
 5. Cierre de mes: resumen del mes y un botón para registrar el pago del que debe, con confirmación, que deja el saldo en cero. El pago se registra siempre a nombre de quien debe, lo toque cualquiera de los dos.
 
@@ -42,7 +42,7 @@ Limitación: el indicador mide cuánto se anota, no si se anota el mismo día, y
 
 Necesitas Expo Go con soporte del SDK 58 y un proyecto propio de Supabase.
 
-1. Crea un proyecto en Supabase y, en el SQL Editor, ejecuta `supabase/esquema.sql` y después `supabase/metas_dia.sql`.
+1. Crea un proyecto en Supabase y, en el SQL Editor, ejecuta `supabase/esquema.sql` y después `supabase/metas_dia.sql`. (Si tu base ya existía de antes, ejecuta también `supabase/dueno.sql`.)
 2. Clona el repo y ejecuta `npm install`.
 3. Copia `.env.example` a `.env` y completa las dos variables con la Project URL (sin `/rest/v1` al final) y la llave *publishable* de tu proyecto. Nunca uses la llave secret.
 4. Ejecuta `npx expo start` y escanea el QR con Expo Go.

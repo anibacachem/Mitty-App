@@ -10,9 +10,12 @@ create table if not exists parejas (
 );
 
 -- Gastos y pagos. "fecha" es cuándo ocurrió el gasto y "creado" cuándo se anotó.
---   tipo:     mitad (50/50), fraccion (partes distintas), invita (no genera deuda),
---             por_otro (era todo del otro), personal (no genera deuda), pago (saldar deuda)
+--   tipo:     mitad (50/50), fraccion (partes distintas), invita (gasto de quien invitó),
+--             por_otro (era todo del otro), personal (gasto de una sola persona), pago (saldar deuda)
 --   pagador:  0 o 1, quién puso la plata
+--   dueno:    0 o 1, solo en invita y personal: quién invitó / de quién es el gasto. Si es distinto
+--             de quien pagó, el dueño le debe todo. Vacío = quien pagó (supabase/dueno.sql lo agrega
+--             a una base que ya existía)
 --   parte0/parte1: solo en "fraccion", lo que le toca a cada uno; deben sumar el monto
 create table if not exists movimientos (
   id           text primary key,
@@ -26,6 +29,7 @@ create table if not exists movimientos (
   creado       timestamptz default now(),
   parte0       numeric,
   parte1       numeric,
+  dueno        int check (dueno is null or dueno in (0, 1)),
   constraint movimientos_fraccion_check
     check (tipo <> 'fraccion'
            or (parte0 is not null and parte1 is not null
