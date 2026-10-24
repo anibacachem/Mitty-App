@@ -14,7 +14,7 @@ const CADA_CUANTO_MS = 5000; // los datos se refrescan solos cada 5 segundos
 const FILTROS = [
   { id: 'todos', texto: 'Todos', tipos: null },
   { id: 'compartidos', texto: 'Compartidos', tipos: ['mitad', 'fraccion', 'por_otro'] },
-  { id: 'invitaciones', texto: 'Invitaciones', tipos: ['invita'] },
+  { id: 'propios', texto: 'Personales e invitaciones', tipos: ['invita', 'personal'] },
   { id: 'pagos', texto: 'Pagos', tipos: ['pago'] },
 ];
 const MESES = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto',
@@ -161,31 +161,31 @@ export default function Principal({ pareja, aviso, onAnadir, onAsistente, onRitu
     [movimientos, hoy]
   );
 
-  // Filas del Detalle: yo primero. "pagos" solo aparece si ya hubo pagos entre ustedes.
-  // El gasto personal se saca de "Gasto total" y "Le correspondía" y va en su propia fila.
+  // Detalle en dos grupos, yo primero:
+  //   Gastos compartidos (mitad, fracción, era del otro) y Gastos personales e invitaciones.
+  // Cada grupo muestra lo que pagó cada uno y lo que le correspondía. Los pagos entre ustedes
+  // (solo si los hubo) y el Resultado final van abajo, y ese Resultado suma los dos grupos.
   const orden = [yo, otro];
   const hayPagos = balanceMes.pagosEnviados[0] + balanceMes.pagosEnviados[1] > 0;
-  const hayPersonal = balanceMes.personal[0] + balanceMes.personal[1] > 0;
-  const filasDetalle = [
-    { texto: 'Gasto total', valores: orden.map((i) => pesos(balanceMes.gastado[i] - balanceMes.personal[i])) },
-    { texto: 'Le correspondía', valores: orden.map((i) => pesos(balanceMes.corresponde[i] - balanceMes.personalDueno[i])) },
+  const filasGrupo = (g) => [
+    { texto: 'Gasto total', valores: orden.map((i) => pesos(g.gastado[i])) },
+    { texto: 'Le correspondía', valores: orden.map((i) => pesos(g.corresponde[i])) },
   ];
-  if (hayPersonal) {
-    filasDetalle.push({
-      texto: 'Gasto personal',
-      valores: orden.map((i) => (balanceMes.personal[i] >= 0.5 ? pesos(balanceMes.personal[i]) : '—')),
-    });
+  const hayPropios = balanceMes.secciones.propios.gastado[0] + balanceMes.secciones.propios.gastado[1]
+    + balanceMes.secciones.propios.corresponde[0] + balanceMes.secciones.propios.corresponde[1] > 0;
+  const gruposDetalle = [{ titulo: 'Gastos compartidos', filas: filasGrupo(balanceMes.secciones.compartidos) }];
+  if (hayPropios) {
+    gruposDetalle.push({ titulo: 'Gastos personales e invitaciones', filas: filasGrupo(balanceMes.secciones.propios) });
   }
+  // Pagos entre ustedes: dos filas con solo el monto (o "—"), alineadas a la derecha.
+  // "Pagó" = dinero que envió para saldar la deuda; "Recibió" = dinero que le llegó.
   if (hayPagos) {
-    // Dos filas con solo el monto (o "—"), así todo queda alineado a la derecha:
-    // "Pagó" = dinero que envió para saldar la deuda; "Recibió" = dinero que le llegó.
-    filasDetalle.push({
-      texto: 'Pagó',
-      valores: orden.map((i) => (balanceMes.pagosEnviados[i] >= 0.5 ? pesos(balanceMes.pagosEnviados[i]) : '—')),
-    });
-    filasDetalle.push({
-      texto: 'Recibió',
-      valores: orden.map((i) => (balanceMes.pagosRecibidos[i] >= 0.5 ? pesos(balanceMes.pagosRecibidos[i]) : '—')),
+    gruposDetalle.push({
+      titulo: 'Pagos entre ustedes',
+      filas: [
+        { texto: 'Pagó', valores: orden.map((i) => (balanceMes.pagosEnviados[i] >= 0.5 ? pesos(balanceMes.pagosEnviados[i]) : '—')) },
+        { texto: 'Recibió', valores: orden.map((i) => (balanceMes.pagosRecibidos[i] >= 0.5 ? pesos(balanceMes.pagosRecibidos[i]) : '—')) },
+      ],
     });
   }
 
@@ -337,11 +337,16 @@ export default function Principal({ pareja, aviso, onAnadir, onAsistente, onRitu
             </Text>
           ))}
         </View>
-        {filasDetalle.map((f) => (
-          <View key={f.texto} style={styles.detalleFila}>
-            <Text style={styles.detalleTexto}>{f.texto}</Text>
-            {f.valores.map((v, k) => (
-              <Text key={k} style={styles.detalleCol}>{v}</Text>
+        {gruposDetalle.map((g) => (
+          <View key={g.titulo}>
+            <Text style={styles.detalleSeccion}>{g.titulo}</Text>
+            {g.filas.map((f) => (
+              <View key={f.texto} style={styles.detalleFila}>
+                <Text style={styles.detalleTexto}>{f.texto}</Text>
+                {f.valores.map((v, k) => (
+                  <Text key={k} style={styles.detalleCol}>{v}</Text>
+                ))}
+              </View>
             ))}
           </View>
         ))}
@@ -358,10 +363,10 @@ export default function Principal({ pareja, aviso, onAnadir, onAsistente, onRitu
           ))}
         </View>
         {infoAbierta && <Text style={styles.nota}>
-          Solo cuenta los movimientos de este mes. Gasto total = todo lo que anotó como gasto compartido suyo,
-          incluidas las invitaciones. Le correspondía = su parte (en una invitación, todo es de quien invita).
-          Gasto personal = lo que gastó solo para sí: no genera deuda. Pagó / Recibió = dinero entregado entre
-          ustedes para saldar la deuda. Resultado = gasto total − lo que le correspondía ± pagos.
+          Solo cuenta los movimientos de este mes. Gasto total = lo que cada uno puso de su bolsillo; Le correspondía =
+          su parte. En gastos compartidos se reparten (mitad, fracción); en invitaciones y gastos personales todo es
+          de quien invitó o de quien es el gasto, y si pagó el otro se lo debe. Pagó / Recibió = dinero entregado entre
+          ustedes para saldar la deuda. Resultado = suma de ambos grupos ± pagos.
         </Text>}
       </View>
 
@@ -559,6 +564,7 @@ const styles = StyleSheet.create({
   detalleFila: { flexDirection: 'row', alignItems: 'center', paddingVertical: 6 },
   detalleTexto: { flex: 1.3, fontSize: 14, color: '#555' },
   detalleCol: { flex: 1, fontSize: 14, color: '#222', textAlign: 'right' },
+  detalleSeccion: { fontSize: 12, fontWeight: '700', color: '#777', marginTop: 10, marginBottom: 2, textTransform: 'uppercase' },
   detalleNombre: { fontWeight: '700', color: ACENTO },
   detalleTotal: { borderTopWidth: 1, borderTopColor: '#F0E4E0', marginTop: 4, paddingTop: 10 },
   rojo: { color: '#B91C1C' },
