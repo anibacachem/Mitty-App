@@ -599,9 +599,10 @@ export default function Principal({ pareja, aviso, onAnadir, onAsistente, onRitu
 
 const styles = StyleSheet.create({
   lista: { flex: 1, backgroundColor: '#FFF8F5' },
-  // Nunito ExtraBold: redondeada y ancha. (Con una fuente propia no se usa fontWeight: ya trae su grosor.)
-  titulo: { fontSize: 32, fontFamily: 'Nunito_800ExtraBold', color: ACENTO, textAlign: 'center' },
-  subtitulo: { fontSize: 16, color: '#555', textAlign: 'center', marginTop: 6, marginBottom: 24 },
+  // Nunito ExtraBold: redondeada y gruesa. (Con una fuente propia no se usa fontWeight: ya trae su grosor.)
+  titulo: { fontSize: 32, lineHeight: 40, fontFamily: 'Nunito_800ExtraBold', color: ACENTO, textAlign: 'center' },
+  // Nunito Bold, y poco espacio hasta la primera caja (antes 6 arriba y 24 abajo)
+  subtitulo: { fontSize: 16, fontFamily: 'Nunito_700Bold', color: '#555', textAlign: 'center', marginTop: 0, marginBottom: 10 },
   tarjeta: { backgroundColor: '#fff', borderRadius: 16, padding: 18, borderWidth: 1,
     borderColor: '#F0E4E0' },
   tarjetaArriba: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },

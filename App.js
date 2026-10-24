@@ -3,7 +3,7 @@ import {
   ActivityIndicator, Animated, BackHandler, Dimensions, Image, PanResponder, SafeAreaView, View,
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
-import { useFonts, Nunito_800ExtraBold } from '@expo-google-fonts/nunito';
+import { useFonts, Nunito_700Bold, Nunito_800ExtraBold } from '@expo-google-fonts/nunito';
 import Inicio from './src/pantallas/Inicio';
 import CrearPareja from './src/pantallas/CrearPareja';
 import UnirmeConCodigo from './src/pantallas/UnirmeConCodigo';
@@ -34,7 +34,7 @@ export default function App() {
   const [pareja, setPareja] = useState(null); // { codigo, nombre0, nombre1, yo }
   const [cargando, setCargando] = useState(true); // true mientras leemos la sesión guardada
   // Letra redondeada y ancha para el saludo. Si no logra cargar, la app sigue con la letra normal.
-  const [fuentesListas, errorFuentes] = useFonts({ Nunito_800ExtraBold });
+  const [fuentesListas, errorFuentes] = useFonts({ Nunito_700Bold, Nunito_800ExtraBold });
   const esperando = cargando || !(fuentesListas || errorFuentes); // mostramos el logo hasta tener sesión y letra
   const [aviso, setAviso] = useState(''); // mensaje corto en la pantalla principal ("Gasto anotado")
 
