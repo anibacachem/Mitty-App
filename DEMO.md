@@ -21,7 +21,7 @@ Idea clave: el banco dice **cuánto** se gastó, no **de quién era** el gasto.
 
 ## 2. Lo que intentamos y por qué falló (0:45 – 1:20)
 
-> "Intentamos llevar un hilo de WhatsApp donde anotábamos cada gasto compartido. Funcionó unos días y después se perdía entre otros mensajes, y dejamos de usarlo. Y cuando llegaba fin de mes, perdíamos tiempo y cabeza tratando de recordar quién invitó a qué y qué se pagó a medias, calculando y rastreando."
+> "Intentamos llevar un hilo de WhatsApp donde anotábamos cada gasto compartido. Pero igual había que calcular todo a fin de mes y rehacer la trazabilidad, y esa se perdía con los gastos que no alcanzábamos a anotar. Y cuando llegaba fin de mes, perdíamos tiempo y cabeza tratando de recordar quién invitó a qué y qué se pagó a medias, calculando y rastreando."
 
 Idea clave: la idea de anotar era buena; el **medio** fallaba (sin estructura, sin cálculo, sin recompensa).
 
@@ -72,7 +72,7 @@ Si hasta el pitch la usaron en pareja unos días, di cuántos y qué notaron. Es
 
 ## Preguntas que pueden hacer
 
-- **¿Por qué no una planilla o un chat?** Lo probamos con WhatsApp: sin estructura ni cálculo, se abandona. Aquí anotar es de unos 20 segundos y el saldo sale solo.
+- **¿Por qué no una planilla o un chat?** Lo probamos con WhatsApp: igual había que calcular todo a fin de mes y la trazabilidad se perdía con los gastos no anotados. Aquí anotar es de unos 20 segundos y el saldo sale solo.
 - **¿Qué pasa con los datos?** El prototipo usa solo datos inventados. Para datos reales haría falta iniciar sesión.
 - **¿Cómo saben que el hábito cambia?** Lo definimos: tres de cuatro semanas con 8 gastos o más, y la mayoría anotados el mismo día.
 - **¿Qué falta?** Avisos más inteligentes (que se salten si ya anotaste), un widget, accesos rápidos y bancos.

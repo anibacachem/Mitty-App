@@ -78,3 +78,4 @@
 - chore: se descarta la versión web; la demo se proyecta desde Expo Go y se quita el toque al aviso que no funcionaba | archivos: App.js, src/notificaciones.js, README.md | motivo: la demo se presenta con el celular conectado a la TV
 - chore: se elimina todo lo de la versión web (librerías, script web y configuración) | archivos: package.json, app.json, README.md, src/avisos.js (borrar), vercel.json (borrar), assets/favicon.png (borrar) | motivo: la demo se presenta desde Expo Go
 - docs: README en el orden de la hackatón (problema, por qué ese, qué dejamos fuera) y se agrega la expansión a amigos, roomies y familia | archivos: README.md | motivo: que la primera parte responda las tres preguntas que pide la hackatón
+- docs: se corrige por qué falló WhatsApp (calcular a fin de mes y trazabilidad perdida) | archivos: README.md, DEMO.md | motivo: que coincida con la lámina del jurado

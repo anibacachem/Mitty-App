@@ -4,7 +4,7 @@ Una app para que una pareja anote en segundos sus gastos compartidos y cierre el
 
 ## Qué problema decidimos atacar
 
-La pareja comparte muchos gastos: unos a medias, otros que paga uno por el otro y otros que son una invitación. Cada fin de mes discuten porque no recuerdan quién pagó qué ni cuál fue invitación, y el historial del banco no trae ese detalle. Intentaron llevar un hilo de WhatsApp con cada gasto compartido, pero se perdía entre otros mensajes y dejaron de usarlo. A fin de mes perdían tiempo y cabeza recordando quién invitó a qué y qué se pagó a medias, y calculando y rastreando.
+La pareja comparte muchos gastos: unos a medias, otros que paga uno por el otro y otros que son una invitación. Cada fin de mes discuten porque no recuerdan quién pagó qué ni cuál fue invitación, y el historial del banco no trae ese detalle. Intentaron llevar un hilo de WhatsApp con cada gasto compartido, pero igual había que calcular todo a fin de mes y rehacer la trazabilidad, que se perdía con los gastos no anotados. A fin de mes perdían tiempo y cabeza recordando quién invitó a qué y qué se pagó a medias, y calculando y rastreando.
 
 El problema no es calcular quién debe a quién. Es el hábito de anotar cada gasto en el momento en que ocurre.
 
