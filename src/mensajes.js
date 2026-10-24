@@ -1,44 +1,36 @@
 // Mensaje amable del ritual de domingo, armado con reglas simples según cómo fue la semana.
 // Regla de oro: nunca culpa. Habla de lo que sí se hizo y de cómo seguir.
 //
-//   medida:          el resultado de medirPeriodo para la semana
-//   semanaTerminada: true si hoy es el último día de la semana (domingo, o fin de mes)
-//   hoy:             "2026-10-25"
+//   medida:          el resultado de medirSemana (anotados, enElMomento, meta, exito, faltan, estado)
+//   semanaTerminada: true si la semana ya pasó o hoy es domingo
 // Devuelve { titulo, texto, pista }. "pista" puede venir vacía.
-export function mensajeRitual(medida, semanaTerminada, hoy) {
-  const { estado, porcentaje, anotados, esperados } = medida;
+export function mensajeRitual(medida, semanaTerminada) {
+  const { estado, anotados, enElMomento, meta, exito, faltan } = medida;
   let titulo;
   let texto;
 
-  if (estado === 'sin_datos') {
-    // Todos los días quedaron declarados sin gastos
-    titulo = 'Semana tranquila';
-    texto = 'No hubo gastos compartidos que anotar. ¡A veces también se trata de eso!';
-  } else if (porcentaje === 100) {
-    titulo = semanaTerminada ? '¡Semana completa!' : '¡Van perfecto!';
-    texto = semanaTerminada
-      ? 'Anotaron todo lo que gastaron. Así se llega a fin de mes sin discutir.'
-      : 'Todo lo de la semana está anotado. Sigan así.';
+  if (anotados >= meta) {
+    titulo = semanaTerminada ? '¡Semana completa!' : '¡Superaron la meta!';
+    texto = `Anotaron ${anotados} gastos. Así se llega a fin de mes sin discutir.`;
   } else if (estado === 'logrado') {
-    // Entre la meta (80%) y 99%
-    titulo = semanaTerminada ? '¡Muy buena semana!' : '¡Muy buen ritmo!';
-    texto = 'Casi todo quedó anotado, y eso es lo que importa.';
+    titulo = semanaTerminada ? '¡Semana lograda!' : '¡Meta lograda!';
+    texto = `Llevan ${anotados} gastos anotados y la meta era ${exito}. Lo que sigue es ganancia.`;
   } else if (anotados === 0) {
     titulo = 'Un nuevo comienzo';
     texto = 'Todavía no hay gastos anotados. Con el próximo que ocurra, ya están en marcha.';
-  } else if (porcentaje < 50) {
+  } else if (anotados < exito / 2) {
     titulo = 'Cada gasto cuenta';
-    texto = 'Esta semana costó un poco más, y está bien. Retomar con el próximo gasto ya es avanzar.';
+    texto = semanaTerminada
+      ? 'Esta semana costó un poco más, y está bien. Retomar con el próximo gasto ya es avanzar.'
+      : `Van ${anotados}. Con el próximo gasto que anoten, ya van avanzando.`;
   } else {
-    // Entre 50% y 79%
     titulo = 'Van por buen camino';
-    texto = `Llevan ${anotados} de ${esperados}. Cada gasto anotado suma.`;
+    texto = `Llevan ${anotados} de ${meta}. ${faltan === 1 ? 'Falta 1 para' : `Faltan ${faltan} para`} la meta de ${exito}.`;
   }
 
-  // Si algún día ya pasado quedó por debajo de su meta, recordamos que se puede declarar
-  const hayDiaPasadoIncompleto = medida.dias.some((d) => !d.completo && d.fecha < hoy);
-  const pista = hayDiaPasadoIncompleto
-    ? 'Si algún día hubo menos gastos, tócalo en la tira y decláralo: el medidor se ajusta.'
+  // Un empujón suave hacia el hábito real: anotar cuando ocurre el gasto
+  const pista = anotados > 0 && enElMomento < anotados
+    ? 'Anotar el gasto justo cuando ocurre es lo que más ayuda: no hay que acordarse después.'
     : '';
 
   return { titulo, texto, pista };

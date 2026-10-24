@@ -1,13 +1,11 @@
 import { useEffect, useState } from 'react';
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { cargarTodo } from '../datos';
-import DiaDeclarable from '../componentes/DiaDeclarable';
 import BotonInfo from '../componentes/BotonInfo';
 import { fechaDeDiaMes, hoyISO, pesos } from '../formato';
 import { calcularBalance, describirSaldo } from '../saldo';
 import {
-  META_DIARIA, META_PORCENTAJE, diaDeSemana, diasEntre, limitesDelMes, medirPeriodo, semanaQueContiene,
-  sumarDias,
+  EXITO_SEMANA, META_SEMANA, diaDeSemana, diasEntre, medirMes, medirSemana, semanaCompleta, sumarDias,
 } from '../habito';
 import { mensajeRitual } from '../mensajes';
 import { ACENTO } from '../colores';
@@ -16,41 +14,37 @@ import { ACENTO } from '../colores';
 const corta = (iso) => `${iso.slice(8, 10)}/${iso.slice(5, 7)}`;
 
 const LETRAS_DIA = ['D', 'L', 'M', 'M', 'J', 'V', 'S']; // indexadas por diaDeSemana (0 = domingo)
-const NOMBRES_DIA = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
 const MESES = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto',
   'septiembre', 'octubre', 'noviembre', 'diciembre'];
 
-// Medidor de un período: "6/9", el porcentaje y una barra con una raya en la meta (80%).
+// Medidor de la semana: "7/10", una barra y una raya en la meta de éxito (8 de 10).
 // Verde si llega a la meta; ámbar si no (nunca rojo: el ritual es sin culpas).
 function Medidor({ medida }) {
   const color = medida.estado === 'logrado' ? '#16A34A' : '#D97706';
-  if (medida.estado === 'sin_datos') {
-    return <Text style={styles.habitoVacio}>Todavía no hay días que medir.</Text>;
-  }
   return (
     <View>
       <View style={styles.habitoFila}>
-        <Text style={styles.habitoGrande}>{medida.anotados}/{medida.esperados}</Text>
-        <Text style={[styles.habitoPct, { color }]}>{medida.porcentaje}%</Text>
+        <Text style={styles.habitoGrande}>{medida.anotados}/{medida.meta}</Text>
+        <Text style={[styles.habitoPct, { color }]}>
+          {medida.estado === 'logrado' ? '¡Lograda!' : `Faltan ${medida.faltan}`}
+        </Text>
       </View>
       <View style={styles.barraHabitoFondo}>
         <View style={[styles.barraHabito, { width: `${medida.porcentaje}%`, backgroundColor: color }]} />
-        <View style={[styles.marcaMeta, { left: `${META_PORCENTAJE}%` }]} />
+        <View style={[styles.marcaMeta, { left: `${(medida.exito / medida.meta) * 100}%` }]} />
       </View>
-      {medida.extra > 0 && (
-        <Text style={styles.habitoMeta}>+{medida.extra} de más (no compensan otros días)</Text>
-      )}
+      <Text style={styles.habitoMeta}>
+        {medida.enElMomento} de {medida.anotados} {medida.anotados === 1 ? 'se anotó' : 'se anotaron'} en el momento
+        {medida.anotados > medida.meta ? ` · +${medida.anotados - medida.meta} de más` : ''}
+      </Text>
     </View>
   );
 }
 
-// Ritual de domingo: el mensaje, cómo va la semana y el mes, y un resumen corto.
+// Ritual de domingo: el mensaje, cómo va la semana (meta 8 de 10) y el mes acumulado, y un resumen corto.
 // pareja: { codigo, nombre0, nombre1, yo }. onVolver: regresar a la pantalla principal.
 export default function Ritual({ pareja, onVolver }) {
   const [movimientos, setMovimientos] = useState(null); // null = todavía cargando
-  const [declaraciones, setDeclaraciones] = useState([]); // días declarados con menos de 3 gastos
-  const [metasDisponible, setMetasDisponible] = useState(true); // false si falta la tabla metas_dia
-  const [diaSel, setDiaSel] = useState(null); // día tocado en la tira (null = hoy)
   const [error, setError] = useState('');
   const [infoResumen, setInfoResumen] = useState(false); // explicación del Resumen (botón i)
   const [semanaElegida, setSemanaElegida] = useState(null); // semana que muestra TODA la pantalla (null = la actual)
@@ -59,10 +53,9 @@ export default function Ritual({ pareja, onVolver }) {
   const [mesTxt, setMesTxt] = useState('');
   const [errorFecha, setErrorFecha] = useState('');
 
-  // Cambia de semana (null = la actual) y suelta el día seleccionado de la tira
+  // Cambia de semana (null = la actual)
   function cambiarSemana(semana) {
     setSemanaElegida(semana);
-    setDiaSel(null);
   }
 
   // Ir a la semana que contiene la fecha que escribió (solo fechas pasadas o de hoy, del año en curso)
@@ -73,19 +66,17 @@ export default function Ritual({ pareja, onVolver }) {
       return;
     }
     setErrorFecha('');
-    const s = semanaQueContiene(f);
-    cambiarSemana(s.desde === semanaQueContiene(hoyISO()).desde ? null : s); // si es la actual, volvemos a null
+    const s = semanaCompleta(f);
+    cambiarSemana(s.desde === semanaCompleta(hoyISO()).desde ? null : s); // si es la actual, volvemos a null
     setVerSelector(false);
   }
 
-  // Pedimos todos los movimientos y los días declarados: la semana sale de filtrarlos y el saldo usa todos
+  // Pedimos todos los movimientos (y los días declarados, que Principal aún usa): la semana sale de filtrarlos y el saldo usa todos
   async function cargar() {
     setError('');
     try {
       const datos = await cargarTodo(pareja.codigo);
       setMovimientos(datos.movimientos);
-      setDeclaraciones(datos.declaraciones);
-      setMetasDisponible(datos.metasDisponible);
     } catch (e) {
       setError('No se pudo cargar el resumen: ' + String(e.message).slice(0, 150));
     }
@@ -120,30 +111,25 @@ export default function Ritual({ pareja, onVolver }) {
     );
   }
 
-  // ---- Semana fija (lunes a domingo, recortada al mes) y mes calendario ----
+  // ---- Semana completa (lunes a domingo, aunque cruce de mes) ----
   const hoy = hoyISO();
-  const semanaActual = semanaQueContiene(hoy);
+  const semanaActual = semanaCompleta(hoy);
   // TODA la pantalla (mensaje, medidor, tira, mes y resumen) sigue a la semana elegida con las flechas
   const semanaVista = semanaElegida ?? semanaActual;
   const esSemanaActual = semanaVista.desde === semanaActual.desde;
-  const medSemana = medirPeriodo(movimientos, declaraciones, semanaVista.desde, semanaVista.hasta, hoy);
-  // El mes es el de la semana que se mira (las semanas nunca cruzan de mes)
-  const limitesMes = limitesDelMes(semanaVista.desde);
-  const medMes = medirPeriodo(movimientos, declaraciones, limitesMes.desde, limitesMes.hasta, hoy);
-  const indiceMes = Number(semanaVista.desde.slice(5, 7)) - 1;
+  const medSemana = medirSemana(movimientos, semanaVista.desde, semanaVista.hasta);
+  // El mes es el del último día ya transcurrido de la semana que se mira (en la semana actual, el de hoy)
+  const fechaDelMes = semanaVista.hasta < hoy ? semanaVista.hasta : hoy;
+  const medMes = medirMes(movimientos, fechaDelMes, hoy);
+  const indiceMes = Number(fechaDelMes.slice(5, 7)) - 1;
   const nombreMes = MESES[indiceMes];
   const mesSiguiente = MESES[(indiceMes + 1) % 12];
-  const esMesActual = limitesMes.desde === limitesDelMes(hoy).desde;
+  const esMesActual = fechaDelMes.slice(0, 7) === hoy.slice(0, 7);
 
   // Mensaje amable según cómo va la semana (una semana pasada ya está terminada)
   const semanaTerminada = hoy >= semanaVista.hasta;
-  const mensaje = mensajeRitual(medSemana, semanaTerminada, hoy);
+  const mensaje = mensajeRitual(medSemana, semanaTerminada);
   const fondoMensaje = medSemana.estado === 'logrado' ? '#E7F5EC' : '#FDF6E8';
-
-  // Día seleccionado en la tira: en la semana actual, hoy; en una pasada, su último día
-  const seleccionado = diaSel ?? (esSemanaActual ? hoy : semanaVista.hasta);
-  const dSel = medSemana.dias.find((x) => x.fecha === seleccionado); // undefined = día que aún no llega
-  const declSel = declaraciones.find((x) => x.fecha === seleccionado);
 
   // ---- Resumen de la semana que se mira ----
   const semana = movimientos.filter((m) => m.fecha >= semanaVista.desde && m.fecha <= semanaVista.hasta);
@@ -161,7 +147,7 @@ export default function Ritual({ pareja, onVolver }) {
           flecha adelante = semana siguiente, sin pasar de la actual */}
       <View style={styles.navSemana}>
         <Pressable style={styles.flecha} hitSlop={8}
-          onPress={() => cambiarSemana(semanaQueContiene(sumarDias(semanaVista.desde, -1)))}>
+          onPress={() => cambiarSemana(semanaCompleta(sumarDias(semanaVista.desde, -1)))}>
           <Text style={styles.flechaTexto}>‹</Text>
         </Pressable>
         <Text style={styles.navTexto}>
@@ -169,7 +155,7 @@ export default function Ritual({ pareja, onVolver }) {
         </Text>
         <Pressable style={[styles.flecha, esSemanaActual && styles.flechaOff]} hitSlop={8} disabled={esSemanaActual}
           onPress={() => {
-            const sig = semanaQueContiene(sumarDias(semanaVista.hasta, 1));
+            const sig = semanaCompleta(sumarDias(semanaVista.hasta, 1));
             cambiarSemana(sig.desde === semanaActual.desde ? null : sig); // al llegar a la actual, volvemos a null
           }}>
           <Text style={styles.flechaTexto}>›</Text>
@@ -208,62 +194,46 @@ export default function Ritual({ pareja, onVolver }) {
         {mensaje.pista !== '' && <Text style={styles.heroPista}>{mensaje.pista}</Text>}
       </View>
 
-      {/* 2. Cómo va la semana: medidor, tira de días y declaración del día elegido */}
+      {/* 2. Cómo va la semana: medidor (meta 8 de 10) y tira con lo anotado cada día */}
       <View style={styles.tarjeta}>
-        <Text style={styles.etiqueta}>Gastos compartidos anotados {esSemanaActual ? 'esta semana' : 'en la semana'}</Text>
+        <Text style={styles.etiqueta}>Gastos anotados {esSemanaActual ? 'esta semana' : 'en la semana'}</Text>
         <Medidor medida={medSemana} />
 
-        {/* Tira de la semana: cada día con lo anotado contra su meta */}
         <View style={styles.tiraDias}>
           {diasEntre(semanaVista.desde, semanaVista.hasta).map((f) => {
-            const d = medSemana.dias.find((x) => x.fecha === f); // undefined = día que aún no llega
+            const futuro = f > hoy; // los días que aún no llegan se muestran apagados
+            const n = medSemana.porDia[f] || 0;
             return (
-              // Tocar un día lo selecciona para declararlo (los días que aún no llegan no se pueden tocar)
-              <Pressable key={f} style={styles.dia} onPress={() => d && setDiaSel(f)}>
+              <View key={f} style={styles.dia}>
                 <Text style={styles.diaLetra}>{LETRAS_DIA[diaDeSemana(f)]}</Text>
-                <View
-                  style={[
-                    styles.diaCaja,
-                    !d && styles.diaFuturo,
-                    d && (d.completo ? styles.diaOk : styles.diaPoco),
-                    d && d.declarado && styles.diaDeclarado, // borde punteado: la meta del día fue declarada
-                    f === seleccionado && styles.diaSel,
-                  ]}
-                >
-                  <Text style={styles.diaTexto}>{d ? `${d.contados}/${d.objetivo}${d.extra > 0 ? '+' : ''}` : '–'}</Text>
+                <View style={[styles.diaCaja, futuro ? styles.diaFuturo : n > 0 ? styles.diaOk : styles.diaPoco,
+                  f === hoy && styles.diaSel]}>
+                  <Text style={styles.diaTexto}>{futuro ? '–' : n}</Text>
                 </View>
-              </Pressable>
+              </View>
             );
           })}
         </View>
 
-        {/* Panel del día seleccionado: declarar que hubo menos de 3 gastos compartidos */}
-        <View style={styles.panelDia}>
-          <Text style={styles.panelTitulo}>
-            {NOMBRES_DIA[diaDeSemana(seleccionado)]} {corta(seleccionado)}
-            {dSel ? ` · ${dSel.anotados} ${dSel.anotados === 1 ? 'gasto anotado' : 'gastos anotados'}` : ''}
-          </Text>
-          <DiaDeclarable
-            key={seleccionado}
-            pareja={pareja}
-            fecha={seleccionado}
-            dia={dSel}
-            declaracion={declSel}
-            disponible={metasDisponible}
-            onCambio={cargar}
-          />
-        </View>
-
         <Text style={styles.nota}>
-          Meta: {META_DIARIA} gastos compartidos por día. "Logrado" desde {META_PORCENTAJE}%. El borde punteado marca
-          los días declarados.
+          Meta: {META_SEMANA} gastos por semana (lunes a domingo). Desde {EXITO_SEMANA} es un éxito: la raya de la barra.
+          Cuentan los gastos compartidos, personales e invitaciones.
         </Text>
       </View>
 
-      {/* 3. El mes: arranca de cero el día 1 */}
+      {/* 3. El mes: gastos anotados acumulados. Arranca de cero el día 1 */}
       <View style={styles.tarjeta}>
         <Text style={styles.etiqueta}>Mes de {nombreMes}</Text>
-        <Medidor medida={medMes} />
+        <View style={styles.habitoFila}>
+          <Text style={styles.habitoGrande}>{medMes.anotados}</Text>
+          <Text style={styles.habitoMesTexto}>{medMes.anotados === 1 ? 'gasto anotado' : 'gastos anotados'}</Text>
+        </View>
+        <Text style={styles.habitoMeta}>
+          {medMes.semanasMedidas === 0
+            ? 'Todavía no termina ninguna semana de este mes.'
+            : `${medMes.semanasLogradas} de ${medMes.semanasMedidas} ${medMes.semanasMedidas === 1 ? 'semana lograda' : 'semanas logradas'} (${EXITO_SEMANA}+ gastos)`}
+          {medMes.anotados > 0 ? ` · ${medMes.enElMomento} en el momento` : ''}
+        </Text>
         <Text style={styles.nota}>
           {esMesActual ? `El conteo vuelve a cero el 1 de ${mesSiguiente}.` : 'Mes ya cerrado: así quedó su conteo.'}
         </Text>
@@ -299,11 +269,11 @@ export default function Ritual({ pareja, onVolver }) {
         {/* Explicación al pie de la caja, con el mismo formato (tamaño, color, "X = ...") que el Detalle del saldo */}
         {infoResumen && (
           <Text style={styles.nota}>
-            Gasto total = gastos anotados con fecha de la semana elegida (lunes a domingo, recortada al mes), incluidas
+            Gasto total = gastos anotados con fecha de la semana elegida (lunes a domingo completa), incluidas
             invitaciones y personales; los pagos entre ustedes no cuentan. Gastó = lo que cada uno puso de su
             bolsillo esa semana. Las flechas de arriba cambian la semana de toda la pantalla y "Elegir fecha" salta a
             la semana de ese día (del año en curso). Saldo actual = todo lo anotado y aún no saldado, no solo esa
-            semana. El medidor cuenta solo los gastos compartidos.
+            semana. El medidor cuenta todos los gastos anotados.
           </Text>
         )}
       </View>
@@ -336,6 +306,7 @@ const styles = StyleSheet.create({
   // Raya vertical que marca dónde está la meta (80%)
   marcaMeta: { position: 'absolute', top: -3, width: 3, height: 18, backgroundColor: '#444', borderRadius: 2 },
   habitoMeta: { fontSize: 12, color: '#777', marginTop: 6 },
+  habitoMesTexto: { fontSize: 16, color: '#555' },
   habitoVacio: { fontSize: 15, color: '#555', marginTop: 6 },
   // Tira de la semana
   tiraDias: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 14 },
@@ -346,11 +317,8 @@ const styles = StyleSheet.create({
   diaOk: { backgroundColor: '#DDF3E4' },
   diaPoco: { backgroundColor: '#FDEBC8' },
   diaFuturo: { backgroundColor: '#F0F0EE' },
-  diaDeclarado: { borderStyle: 'dashed', borderColor: '#9A9A95' },
   diaSel: { borderStyle: 'solid', borderColor: ACENTO }, // contorno en el día seleccionado (por defecto, hoy)
   diaTexto: { fontSize: 12, fontWeight: '700', color: '#333' },
-  panelDia: { backgroundColor: '#FFF3EF', borderRadius: 12, padding: 12, marginTop: 14 },
-  panelTitulo: { fontSize: 15, fontWeight: '700', color: '#222' },
   nota: { fontSize: 12, color: '#888', marginTop: 10 },
   // Resumen
   tarjetaArriba: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
