@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { ActivityIndicator, Alert, FlatList, Pressable, ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
+import { ActivityIndicator, Alert, FlatList, Modal, Pressable, ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
 import * as Clipboard from 'expo-clipboard';
 import { cargarTodo } from '../datos';
 import { etiquetaTipo, fechaConDia, hoyISO, pesos } from '../formato';
@@ -35,6 +35,7 @@ export default function Principal({ pareja, aviso, onAnadir, onAsistente, onRitu
   const [mesOffset, setMesOffset] = useState(0); // mes de la lista: 0 = actual, -1 = anterior...
   const [filtro, setFiltro] = useState('todos'); // filtro activo de la lista del mes
   const [infoAbierta, setInfoAbierta] = useState(false); // explicación del Detalle (botón i)
+  const [ajustesAbiertos, setAjustesAbiertos] = useState(false); // ventana flotante del engranaje
   const [recordatorios, setRecordatorios] = useState(false); // ¿están activados los recordatorios?
   const [notaRecord, setNotaRecord] = useState(''); // mensaje bajo el interruptor ("Te enviamos una de prueba")
   const enCurso = useRef(false); // evita pedir de nuevo si la petición anterior no terminó
@@ -221,8 +222,15 @@ export default function Principal({ pareja, aviso, onAnadir, onAsistente, onRitu
   // Todo lo que va ARRIBA de la lista (la lista hace scroll junto con esto)
   const encabezado = (
     <View>
-      <Text style={styles.titulo}>Hola, {miNombre}</Text>
-      <Text style={styles.subtitulo}>Compartes gastos con {otroNombre}</Text>
+      {/* Engranaje arriba a la derecha: abre la ventana con el código de enlace y los recordatorios */}
+      <View>
+        <Pressable style={styles.engranaje} onPress={() => setAjustesAbiertos(true)} hitSlop={10}
+          accessibilityLabel="Ajustes">
+          <Text style={styles.engranajeTexto}>{'⚙︎'}</Text>
+        </Pressable>
+        <Text style={styles.titulo}>Hola, {miNombre}</Text>
+        <Text style={styles.subtitulo}>Compartes gastos con {otroNombre}</Text>
+      </View>
 
       {/* Tarjeta de saldo: quién le debe cuánto a quién */}
       <View style={styles.tarjeta}>
@@ -337,27 +345,7 @@ export default function Principal({ pareja, aviso, onAnadir, onAsistente, onRitu
         </Text>}
       </View>
 
-      {/* Código de la pareja, compacto */}
-      <Pressable style={styles.codigoFila} onPress={copiarCodigo}>
-        <Text style={styles.codigoTexto}>
-          Código: <Text style={styles.codigoValor} selectable>{pareja.codigo}</Text>
-        </Text>
-        <Text style={styles.copiar}>{copiado ? '¡Copiado!' : 'Copiar'}</Text>
-      </Pressable>
-
-      {/* Recordatorios: interruptor para recibir avisos que invitan a anotar los gastos */}
-      <View style={styles.recordFila}>
-        <View style={{ flex: 1, paddingRight: 12 }}>
-          <Text style={styles.recordTitulo}>Recordatorios diarios</Text>
-          <Text style={styles.recordSub}>Te avisamos para que anotes tus gastos en pareja</Text>
-        </View>
-        <Switch
-          value={recordatorios}
-          onValueChange={cambiarRecordatorios}
-          trackColor={{ false: '#D4D4D0', true: ACENTO }}
-        />
-      </View>
-      {notaRecord !== '' && <Text style={styles.recordNota}>{notaRecord}</Text>}
+      {/* (El código de la pareja y los recordatorios ahora están en la ventana del engranaje, arriba a la derecha) */}
 
       <Text style={styles.seccion}>
         Gastos del mes ({filtro === 'todos' ? listaMes.length : `${listaVista.length} de ${listaMes.length}`})
@@ -447,6 +435,44 @@ export default function Principal({ pareja, aviso, onAnadir, onAsistente, onRitu
           cargar();
         }}
       />
+      {/* Ventana flotante del engranaje: código de enlace y recordatorios diarios.
+          Tocar fuera de la ventana la cierra. */}
+      <Modal visible={ajustesAbiertos} transparent animationType="fade" onRequestClose={() => setAjustesAbiertos(false)}>
+        <Pressable style={styles.fondoModal} onPress={() => setAjustesAbiertos(false)}>
+          {/* Este Pressable interno frena el toque para que tocar DENTRO de la ventana no la cierre */}
+          <Pressable style={styles.ventanaAjustes} onPress={() => {}}>
+            <Text style={styles.ajustesTitulo}>Código de enlace</Text>
+            <Text style={styles.ajustesAyuda}>Compártelo con tu pareja para que se una desde su teléfono.</Text>
+            <View style={styles.codigoCaja}>
+              <Text style={styles.codigoValor} selectable>{pareja.codigo}</Text>
+              <Pressable onPress={copiarCodigo} hitSlop={8}>
+                <Text style={styles.copiar}>{copiado ? '¡Copiado!' : 'Copiar'}</Text>
+              </Pressable>
+            </View>
+
+            <View style={styles.ajustesSeparador} />
+
+            {/* Recordatorios: interruptor para recibir avisos que invitan a anotar los gastos */}
+            <View style={styles.recordFila}>
+              <View style={{ flex: 1, paddingRight: 12 }}>
+                <Text style={styles.recordTitulo}>Recordatorios diarios</Text>
+                <Text style={styles.recordSub}>Te avisamos para que anotes tus gastos en pareja</Text>
+              </View>
+              <Switch
+                value={recordatorios}
+                onValueChange={cambiarRecordatorios}
+                trackColor={{ false: '#D4D4D0', true: ACENTO }}
+              />
+            </View>
+            {notaRecord !== '' && <Text style={styles.recordNota}>{notaRecord}</Text>}
+
+            <Pressable style={styles.cerrarAjustes} onPress={() => setAjustesAbiertos(false)}>
+              <Text style={styles.cerrarAjustesTexto}>Cerrar</Text>
+            </Pressable>
+          </Pressable>
+        </Pressable>
+      </Modal>
+
       {/* Aviso flotante arriba, por ejemplo "Gasto anotado" */}
       {aviso ? (
         <View style={styles.aviso} pointerEvents="none">
@@ -515,16 +541,26 @@ const styles = StyleSheet.create({
     alignItems: 'center', justifyContent: 'center', marginBottom: 6 },
   botonInfoActivo: { backgroundColor: ACENTO },
   botonInfoTexto: { color: ACENTO, fontSize: 13, fontWeight: '700', fontStyle: 'italic' },
-  codigoFila: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
-    marginTop: 16, paddingHorizontal: 4 },
-  codigoTexto: { fontSize: 13, color: '#777' },
-  codigoValor: { fontWeight: '700', letterSpacing: 1, color: '#444' },
-  copiar: { color: ACENTO, fontSize: 14, fontWeight: '600' },
-  recordFila: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#fff', borderRadius: 16,
-    borderWidth: 1, borderColor: '#E5E5E0', padding: 14, marginTop: 16 },
+  // Engranaje y ventana de ajustes
+  engranaje: { position: 'absolute', right: 0, top: 0, width: 36, height: 36, borderRadius: 18,
+    alignItems: 'center', justifyContent: 'center', backgroundColor: '#F1F1EC', zIndex: 2 },
+  engranajeTexto: { fontSize: 20, color: '#555', lineHeight: 24 },
+  fondoModal: { flex: 1, backgroundColor: 'rgba(0,0,0,0.25)', alignItems: 'flex-end', paddingTop: 70, paddingHorizontal: 16 },
+  ventanaAjustes: { width: '90%', maxWidth: 380, backgroundColor: '#fff', borderRadius: 18, padding: 18,
+    shadowColor: '#000', shadowOpacity: 0.2, shadowRadius: 10, shadowOffset: { width: 0, height: 4 }, elevation: 8 },
+  ajustesTitulo: { fontSize: 16, fontWeight: '700', color: '#222' },
+  ajustesAyuda: { fontSize: 12, color: '#888', marginTop: 2, marginBottom: 10 },
+  codigoCaja: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
+    backgroundColor: '#F6F6F3', borderRadius: 12, paddingVertical: 12, paddingHorizontal: 14 },
+  codigoValor: { fontSize: 18, fontWeight: '700', letterSpacing: 2, color: '#333' },
+  copiar: { color: ACENTO, fontSize: 15, fontWeight: '700' },
+  ajustesSeparador: { height: 1, backgroundColor: '#E5E5E0', marginVertical: 16 },
+  cerrarAjustes: { marginTop: 16, paddingVertical: 10 },
+  cerrarAjustesTexto: { color: ACENTO, fontSize: 15, fontWeight: '600', textAlign: 'center' },
+  recordFila: { flexDirection: 'row', alignItems: 'center' },
   recordTitulo: { fontSize: 15, fontWeight: '700', color: '#222' },
   recordSub: { fontSize: 12, color: '#888', marginTop: 2 },
-  recordNota: { fontSize: 12, color: '#666', marginTop: 6, paddingHorizontal: 4 },
+  recordNota: { fontSize: 12, color: '#666', marginTop: 8 },
   seccion: { fontSize: 18, fontWeight: '700', color: '#222', marginTop: 24, marginBottom: 8 },
   vacio: { color: '#777', fontSize: 15, marginTop: 8 },
   error: { color: '#B91C1C', fontSize: 14, marginTop: 8 },
