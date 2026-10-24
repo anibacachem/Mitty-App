@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
 import { pedir } from '../supabase';
 import { META_DIARIA } from '../habito';
+import { ACENTO } from '../colores';
 
 const ETIQUETA = { 0: 'Ninguno', 1: 'Solo 1', 2: 'Solo 2' };
 
@@ -137,7 +138,6 @@ export default function DiaDeclarable({ pareja, fecha, dia, declaracion, disponi
   );
 }
 
-const ACENTO = '#0F766E';
 
 const styles = StyleSheet.create({
   nota: { fontSize: 13, color: '#888', marginTop: 6 },

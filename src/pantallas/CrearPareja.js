@@ -3,6 +3,7 @@ import { ActivityIndicator, Pressable, StyleSheet, Text, TextInput, View } from 
 import * as Clipboard from 'expo-clipboard';
 import { pedir } from '../supabase';
 import { generarCodigo } from '../codigo';
+import { ACENTO } from '../colores';
 
 // Pantalla para crear la pareja: pide dos nombres, guarda en Supabase y muestra el código.
 // onVolver: regresar al inicio. onListo: entrar a la app con los datos de la pareja.
@@ -84,10 +85,9 @@ export default function CrearPareja({ onVolver, onListo }) {
   );
 }
 
-const ACENTO = '#0F766E';
 
 const styles = StyleSheet.create({
-  contenedor: { flex: 1, backgroundColor: '#FAFAF7', padding: 24, justifyContent: 'center' },
+  contenedor: { flex: 1, backgroundColor: '#FFF8F5', padding: 24, justifyContent: 'center' },
   titulo: { fontSize: 28, fontWeight: '700', color: ACENTO, textAlign: 'center', marginBottom: 28 },
   etiqueta: { fontSize: 14, color: '#555', marginBottom: 6 },
   campo: { backgroundColor: '#fff', borderWidth: 1, borderColor: '#D4D4D0', borderRadius: 12,

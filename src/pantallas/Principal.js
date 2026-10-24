@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { ActivityIndicator, Alert, FlatList, Modal, Pressable, ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
+import { ActivityIndicator, Alert, FlatList, Image, Modal, Pressable, ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
 import * as Clipboard from 'expo-clipboard';
 import { cargarTodo } from '../datos';
 import { etiquetaTipo, fechaConDia, hoyISO, pesos } from '../formato';
@@ -7,6 +7,7 @@ import { calcularBalance, describirSaldo, resultadoEnPalabras, textoReparto } fr
 import { limitesDelMes, medirPeriodo } from '../habito';
 import DiaDeclarable from '../componentes/DiaDeclarable';
 import { guardarActivado, leerActivado, notificacionDePrueba, pedirPermiso } from '../notificaciones';
+import { ACENTO } from '../colores';
 
 const CADA_CUANTO_MS = 5000; // los datos se refrescan solos cada 5 segundos
 // Filtros de la lista: qué tipos de movimiento muestra cada uno (null = todos)
@@ -224,6 +225,8 @@ export default function Principal({ pareja, aviso, onAnadir, onAsistente, onRitu
     <View>
       {/* Engranaje arriba a la derecha: abre la ventana con el código de enlace y los recordatorios */}
       <View>
+        {/* Logo de Mitty arriba a la izquierda */}
+        <Image source={require('../../assets/logo.png')} style={styles.logo} />
         <Pressable style={styles.engranaje} onPress={() => setAjustesAbiertos(true)} hitSlop={10}
           accessibilityLabel="Ajustes">
           <Text style={styles.engranajeTexto}>{'⚙︎'}</Text>
@@ -491,14 +494,13 @@ export default function Principal({ pareja, aviso, onAnadir, onAsistente, onRitu
   );
 }
 
-const ACENTO = '#0F766E';
 
 const styles = StyleSheet.create({
-  lista: { flex: 1, backgroundColor: '#FAFAF7' },
+  lista: { flex: 1, backgroundColor: '#FFF8F5' },
   titulo: { fontSize: 30, fontWeight: '700', color: ACENTO, textAlign: 'center' },
   subtitulo: { fontSize: 16, color: '#555', textAlign: 'center', marginTop: 6, marginBottom: 24 },
   tarjeta: { backgroundColor: '#fff', borderRadius: 16, padding: 18, borderWidth: 1,
-    borderColor: '#E5E5E0' },
+    borderColor: '#F0E4E0' },
   tarjetaArriba: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   etiqueta: { fontSize: 13, color: '#777', marginBottom: 6 },
   saldoTexto: { fontSize: 24, fontWeight: '700', marginTop: 4 },
@@ -516,12 +518,12 @@ const styles = StyleSheet.create({
     borderRadius: 16, alignItems: 'center', justifyContent: 'center' },
   textoAnadir: { color: '#fff', fontSize: 17, fontWeight: '700', textAlign: 'center' },
   // Mitty AI: oscuro y con el símbolo ✦ para que se lea como "la opción de IA"
-  botonIA: { flex: 1, minHeight: 68, backgroundColor: '#134E4A', paddingVertical: 12, paddingHorizontal: 8,
+  botonIA: { flex: 1, minHeight: 68, backgroundColor: '#4A1633', paddingVertical: 12, paddingHorizontal: 8,
     borderRadius: 16, marginRight: 10, alignItems: 'center', justifyContent: 'center' },
   textoIAUno: { color: '#fff', fontSize: 18, fontWeight: '800' },
-  textoIADos: { color: '#9FD8D0', fontSize: 12, fontWeight: '600', marginBottom: 1 },
+  textoIADos: { color: '#FFB3C6', fontSize: 12, fontWeight: '600', marginBottom: 1 },
   tarjetaHoy: { backgroundColor: '#fff', borderRadius: 16, padding: 16, borderWidth: 1,
-    borderColor: '#E5E5E0', marginTop: 12 },
+    borderColor: '#F0E4E0', marginTop: 12 },
   hoyFila: { flexDirection: 'row', alignItems: 'center' },
   hoyTitulo: { fontSize: 17, fontWeight: '700', color: '#222', marginRight: 12 },
   puntos: { flexDirection: 'row', flex: 1 },
@@ -533,7 +535,7 @@ const styles = StyleSheet.create({
   filaRitual: { flexDirection: 'row', marginTop: 12 },
   botonRitual: { flex: 1, borderWidth: 2, borderColor: ACENTO, paddingVertical: 14, borderRadius: 16,
     backgroundColor: '#fff', alignItems: 'center', justifyContent: 'center' },
-  botonRitualHoy: { backgroundColor: '#D7EEEA' },
+  botonRitualHoy: { backgroundColor: '#FFD9E3' },
   textoHoyToca: { color: ACENTO, fontSize: 11, fontWeight: '800', textTransform: 'uppercase', letterSpacing: 0.5 },
   textoRitual: { color: ACENTO, fontSize: 16, fontWeight: '600', textAlign: 'center' },
   textoRitualHoy: { fontWeight: '700' },
@@ -541,7 +543,7 @@ const styles = StyleSheet.create({
   detalleTexto: { flex: 1.3, fontSize: 14, color: '#555' },
   detalleCol: { flex: 1, fontSize: 14, color: '#222', textAlign: 'right' },
   detalleNombre: { fontWeight: '700', color: ACENTO },
-  detalleTotal: { borderTopWidth: 1, borderTopColor: '#E5E5E0', marginTop: 4, paddingTop: 10 },
+  detalleTotal: { borderTopWidth: 1, borderTopColor: '#F0E4E0', marginTop: 4, paddingTop: 10 },
   rojo: { color: '#B91C1C' },
   verde: { color: '#16A34A' },
   nota: { fontSize: 12, color: '#888', marginTop: 8 },
@@ -550,6 +552,7 @@ const styles = StyleSheet.create({
   botonInfoActivo: { backgroundColor: ACENTO },
   botonInfoTexto: { color: ACENTO, fontSize: 13, fontWeight: '700', fontStyle: 'italic' },
   // Engranaje y ventana de ajustes
+  logo: { position: 'absolute', left: 0, top: 0, width: 40, height: 40 },
   engranaje: { position: 'absolute', right: 0, top: 0, width: 36, height: 36, borderRadius: 18,
     alignItems: 'center', justifyContent: 'center', backgroundColor: '#F1F1EC', zIndex: 2 },
   engranajeTexto: { fontSize: 20, color: '#555', lineHeight: 24 },
@@ -559,10 +562,10 @@ const styles = StyleSheet.create({
   ajustesTitulo: { fontSize: 16, fontWeight: '700', color: '#222' },
   ajustesAyuda: { fontSize: 12, color: '#888', marginTop: 2, marginBottom: 10 },
   codigoCaja: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
-    backgroundColor: '#F6F6F3', borderRadius: 12, paddingVertical: 12, paddingHorizontal: 14 },
+    backgroundColor: '#FFF3EF', borderRadius: 12, paddingVertical: 12, paddingHorizontal: 14 },
   codigoValor: { fontSize: 18, fontWeight: '700', letterSpacing: 2, color: '#333' },
   copiar: { color: ACENTO, fontSize: 15, fontWeight: '700' },
-  ajustesSeparador: { height: 1, backgroundColor: '#E5E5E0', marginVertical: 16 },
+  ajustesSeparador: { height: 1, backgroundColor: '#F0E4E0', marginVertical: 16 },
   cerrarAjustes: { marginTop: 8, paddingVertical: 10 },
   cerrarAjustesTexto: { color: ACENTO, fontSize: 15, fontWeight: '600', textAlign: 'center' },
   recordFila: { flexDirection: 'row', alignItems: 'center' },
@@ -573,7 +576,7 @@ const styles = StyleSheet.create({
   vacio: { color: '#777', fontSize: 15, marginTop: 8 },
   error: { color: '#B91C1C', fontSize: 14, marginTop: 8 },
   navMes: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    backgroundColor: '#F6F6F3', borderRadius: 12, paddingVertical: 4, paddingHorizontal: 6, marginBottom: 10 },
+    backgroundColor: '#FFF3EF', borderRadius: 12, paddingVertical: 4, paddingHorizontal: 6, marginBottom: 10 },
   flechaMes: { width: 40, height: 34, alignItems: 'center', justifyContent: 'center' },
   flechaMesOff: { opacity: 0.25 },
   flechaMesTexto: { fontSize: 28, color: ACENTO, fontWeight: '700', lineHeight: 32 },
@@ -586,9 +589,9 @@ const styles = StyleSheet.create({
   chipActivo: { backgroundColor: ACENTO },
   chipTexto: { color: ACENTO, fontSize: 14, fontWeight: '600' },
   chipTextoActivo: { color: '#fff' },
-  cajaLista: { backgroundColor: '#F3F3EE', borderRadius: 16, borderWidth: 1, borderColor: '#E5E5E0',
+  cajaLista: { backgroundColor: '#F3F3EE', borderRadius: 16, borderWidth: 1, borderColor: '#F0E4E0',
     paddingHorizontal: 8, paddingBottom: 8, marginTop: 4 },
-  fila: { backgroundColor: '#fff', borderRadius: 12, borderWidth: 1, borderColor: '#E5E5E0',
+  fila: { backgroundColor: '#fff', borderRadius: 12, borderWidth: 1, borderColor: '#F0E4E0',
     padding: 14, marginTop: 8 },
   filaArriba: { flexDirection: 'row', alignItems: 'center' },
   filaTitulo: { fontSize: 16, fontWeight: '600', color: '#222' },

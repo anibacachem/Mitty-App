@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import {
-  ActivityIndicator, Animated, BackHandler, Dimensions, PanResponder, SafeAreaView, View,
+  ActivityIndicator, Animated, BackHandler, Dimensions, Image, PanResponder, SafeAreaView, View,
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import Inicio from './src/pantallas/Inicio';
@@ -11,6 +11,7 @@ import AnadirGasto from './src/pantallas/AnadirGasto';
 import Ritual from './src/pantallas/Ritual';
 import CierreMes from './src/pantallas/CierreMes';
 import AsistenteIA from './src/pantallas/AsistenteIA';
+import { ACENTO, FONDO } from './src/colores';
 import { borrarSesion, guardarSesion, leerSesion } from './src/sesion';
 
 // A qué pantalla se vuelve desde cada una. Las que no están aquí (inicio y principal) son "raíz": no hay atrás.
@@ -128,11 +129,17 @@ export default function App() {
   }
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: '#FAFAF7' }}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: FONDO }}>
       <StatusBar style="dark" />
-      {cargando && <ActivityIndicator style={{ flex: 1 }} color="#0F766E" />}
+      {/* Mientras leemos la sesión guardada se ve el logo de Mitty */}
+      {cargando && (
+        <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
+          <Image source={require('./assets/logo.png')} style={{ width: 140, height: 140 }} />
+          <ActivityIndicator style={{ marginTop: 24 }} color={ACENTO} />
+        </View>
+      )}
       {/* Todas las pantallas van dentro de esta vista, que se desliza con el dedo al volver atrás */}
-      <Animated.View style={{ flex: 1, backgroundColor: '#FAFAF7', transform: [{ translateX: desliz }] }}>
+      <Animated.View style={{ flex: 1, backgroundColor: FONDO, transform: [{ translateX: desliz }] }}>
       {!cargando && pantalla === 'inicio' && (
         <Inicio
           onCrear={() => setPantalla('crear')}

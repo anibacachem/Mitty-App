@@ -5,6 +5,7 @@ import {
 import { fechaDeDiaMes, formatearMonto, hace, hoyISO, soloDigitos } from '../formato';
 import { pedir } from '../supabase';
 import { generarId } from '../codigo';
+import { ACENTO } from '../colores';
 
 // Las tres formas de repartir un gasto. "valor" es lo que luego se guarda en Supabase.
 const TIPOS = [
@@ -317,7 +318,7 @@ export default function AnadirGasto({ pareja, onCerrar, onGuardado, registrarAtr
     return (
       // ScrollView: con el teclado abierto o la barra desplegada, todo sigue alcanzable.
       // Mientras arrastras la barra se apaga el scroll para que la pantalla no se mueva.
-      <ScrollView style={{ flex: 1, backgroundColor: '#FAFAF7' }} contentContainerStyle={styles.scroll}
+      <ScrollView style={{ flex: 1, backgroundColor: '#FFF8F5' }} contentContainerStyle={styles.scroll}
         keyboardShouldPersistTaps="handled" scrollEnabled={!arrastrando}>
         {resumen}
         <Text style={styles.pregunta}>¿Cómo se reparte entre ustedes?</Text>
@@ -452,7 +453,7 @@ export default function AnadirGasto({ pareja, onCerrar, onGuardado, registrarAtr
   // ---- Paso: monto ----
   return (
     // ScrollView: con el teclado abierto y el selector de fecha, todo sigue alcanzable
-    <ScrollView style={{ flex: 1, backgroundColor: '#FAFAF7' }} contentContainerStyle={styles.scroll}
+    <ScrollView style={{ flex: 1, backgroundColor: '#FFF8F5' }} contentContainerStyle={styles.scroll}
       keyboardShouldPersistTaps="handled">
       <Text style={styles.titulo}>Añadir gasto</Text>
 
@@ -517,11 +518,10 @@ export default function AnadirGasto({ pareja, onCerrar, onGuardado, registrarAtr
   );
 }
 
-const ACENTO = '#0F766E';
 
 const styles = StyleSheet.create({
   // Contenido arriba (no centrado) para que el teclado no lo tape
-  contenedor: { flex: 1, backgroundColor: '#FAFAF7', padding: 24, paddingTop: 40 },
+  contenedor: { flex: 1, backgroundColor: '#FFF8F5', padding: 24, paddingTop: 40 },
   scroll: { padding: 24, paddingTop: 40, paddingBottom: 60 },
   filaFecha: { flexDirection: 'row', marginBottom: 14 },
   chip: { flex: 1, borderWidth: 2, borderColor: ACENTO, borderRadius: 12, paddingVertical: 12,
@@ -569,13 +569,13 @@ const styles = StyleSheet.create({
   pasoBoton: { width: 38, height: 38, borderRadius: 19, borderWidth: 2, borderColor: ACENTO,
     alignItems: 'center', justifyContent: 'center' },
   pasoTexto: { color: ACENTO, fontSize: 22, fontWeight: '700', lineHeight: 26 },
-  marca: { position: 'absolute', top: 14, width: 2, height: 20, marginLeft: -1, backgroundColor: '#7FB5AD' },
+  marca: { position: 'absolute', top: 14, width: 2, height: 20, marginLeft: -1, backgroundColor: '#E58AA3' },
   pistaToque: { flex: 1, height: 48, justifyContent: 'center', marginHorizontal: 16 },
-  pistaFondo: { height: 14, borderRadius: 7, backgroundColor: '#CFE5E1', overflow: 'hidden' },
+  pistaFondo: { height: 14, borderRadius: 7, backgroundColor: '#FAC9D6', overflow: 'hidden' },
   pistaIzq: { height: 14, backgroundColor: ACENTO },
   perilla: { position: 'absolute', top: 10, width: 28, height: 28, borderRadius: 14, marginLeft: -14,
     backgroundColor: '#fff', borderWidth: 3, borderColor: ACENTO },
-  resto: { backgroundColor: '#ECF6F4', borderRadius: 12, padding: 14, marginBottom: 20 },
+  resto: { backgroundColor: '#FFF0F3', borderRadius: 12, padding: 14, marginBottom: 20 },
   restoTexto: { fontSize: 16, color: '#333', textAlign: 'center' },
   restoMonto: { fontWeight: '700', color: ACENTO },
   errorTexto: { fontSize: 15, color: '#B91C1C', textAlign: 'center' },

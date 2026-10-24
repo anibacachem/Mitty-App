@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { pedir } from '../supabase';
+import { ACENTO } from '../colores';
 
 // Pantalla de inicio: dos botones y un aviso de conexión.
 // Recibe dos funciones desde App.js: qué hacer al tocar cada botón.
@@ -47,10 +48,9 @@ export default function Inicio({ onCrear, onUnirme }) {
   );
 }
 
-const ACENTO = '#0F766E'; // verde azulado
 
 const styles = StyleSheet.create({
-  contenedor: { flex: 1, backgroundColor: '#FAFAF7', padding: 24, justifyContent: 'center' },
+  contenedor: { flex: 1, backgroundColor: '#FFF8F5', padding: 24, justifyContent: 'center' },
   titulo: { fontSize: 40, fontWeight: '700', color: ACENTO, textAlign: 'center' },
   subtitulo: { fontSize: 16, color: '#555', textAlign: 'center', marginBottom: 48, marginTop: 8 },
   botonPrincipal: { backgroundColor: ACENTO, paddingVertical: 18, borderRadius: 16, marginBottom: 14 },

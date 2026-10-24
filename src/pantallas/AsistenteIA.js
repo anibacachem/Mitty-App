@@ -10,6 +10,7 @@ import { textoReparto } from '../saldo';
 import { interpretarGasto } from '../ia';
 import { pedir } from '../supabase';
 import { generarId } from '../codigo';
+import { ACENTO } from '../colores';
 
 // Ejemplos que se pueden tocar para llenar el campo (ayudan a saber cómo hablarle al asistente)
 const EJEMPLOS = [
@@ -311,16 +312,15 @@ export default function AsistenteIA({ pareja, onVolver }) {
   );
 }
 
-const ACENTO = '#0F766E';
 
 const styles = StyleSheet.create({
-  pantalla: { flex: 1, backgroundColor: '#FAFAF7' },
+  pantalla: { flex: 1, backgroundColor: '#FFF8F5' },
   encabezado: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
-    paddingHorizontal: 20, paddingTop: 24, paddingBottom: 12, borderBottomWidth: 1, borderBottomColor: '#E5E5E0' },
+    paddingHorizontal: 20, paddingTop: 24, paddingBottom: 12, borderBottomWidth: 1, borderBottomColor: '#F0E4E0' },
   titulo: { fontSize: 24, fontWeight: '700', color: ACENTO },
   cerrar: { fontSize: 16, color: ACENTO, fontWeight: '600' },
   burbuja: { maxWidth: '85%', borderRadius: 16, paddingVertical: 10, paddingHorizontal: 14, marginBottom: 10 },
-  burbujaIA: { alignSelf: 'flex-start', backgroundColor: '#fff', borderWidth: 1, borderColor: '#E5E5E0' },
+  burbujaIA: { alignSelf: 'flex-start', backgroundColor: '#fff', borderWidth: 1, borderColor: '#F0E4E0' },
   burbujaYo: { alignSelf: 'flex-end', backgroundColor: ACENTO },
   burbujaTexto: { fontSize: 16, color: '#222', lineHeight: 22 },
   propBotones: { flexDirection: 'row', marginTop: 10 },
@@ -335,14 +335,14 @@ const styles = StyleSheet.create({
     paddingVertical: 8, paddingHorizontal: 12, marginBottom: 8, backgroundColor: '#fff' },
   ejemploTexto: { color: ACENTO, fontSize: 14, fontWeight: '600' },
   barra: { flexDirection: 'row', alignItems: 'flex-end', padding: 12, borderTopWidth: 1,
-    borderTopColor: '#E5E5E0', backgroundColor: '#fff' },
+    borderTopColor: '#F0E4E0', backgroundColor: '#fff' },
   voz: { borderWidth: 2, borderColor: ACENTO, borderRadius: 18, paddingVertical: 9, paddingHorizontal: 14,
     marginRight: 8, backgroundColor: '#fff' },
   vozGrabando: { backgroundColor: '#B91C1C', borderColor: '#B91C1C' },
   vozTexto: { color: ACENTO, fontWeight: '700', fontSize: 15 },
   grabando: { backgroundColor: '#FDECEC', paddingVertical: 8, paddingHorizontal: 16 },
   grabandoTexto: { color: '#B91C1C', fontSize: 14, fontWeight: '600', textAlign: 'center' },
-  campo: { flex: 1, maxHeight: 110, backgroundColor: '#F6F6F3', borderRadius: 18, paddingHorizontal: 14,
+  campo: { flex: 1, maxHeight: 110, backgroundColor: '#FFF3EF', borderRadius: 18, paddingHorizontal: 14,
     paddingVertical: 10, fontSize: 16 },
   enviar: { backgroundColor: ACENTO, borderRadius: 18, paddingVertical: 11, paddingHorizontal: 18, marginLeft: 8 },
   enviarTexto: { color: '#fff', fontWeight: '700', fontSize: 15 },

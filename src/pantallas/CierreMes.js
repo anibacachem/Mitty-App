@@ -6,6 +6,7 @@ import { generarId } from '../codigo';
 import { hoyISO, pesos } from '../formato';
 import { calcularBalance, describirSaldo } from '../saldo';
 import { limitesDelMes } from '../habito';
+import { ACENTO } from '../colores';
 
 const MESES = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto',
   'septiembre', 'octubre', 'noviembre', 'diciembre'];
@@ -217,14 +218,13 @@ export default function CierreMes({ pareja, onVolver }) {
   );
 }
 
-const ACENTO = '#0F766E';
 
 const styles = StyleSheet.create({
-  pantalla: { flex: 1, backgroundColor: '#FAFAF7' },
+  pantalla: { flex: 1, backgroundColor: '#FFF8F5' },
   titulo: { fontSize: 28, fontWeight: '700', color: ACENTO, textAlign: 'center' },
   subtitulo: { fontSize: 16, color: '#555', textAlign: 'center', marginTop: 6, marginBottom: 20 },
   tarjeta: { backgroundColor: '#fff', borderRadius: 16, padding: 18, borderWidth: 1,
-    borderColor: '#E5E5E0', marginBottom: 14 },
+    borderColor: '#F0E4E0', marginBottom: 14 },
   etiqueta: { fontSize: 13, color: '#777', marginBottom: 6 },
   fila: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 5 },
   filaEtiqueta: { fontSize: 15, color: '#555', flexShrink: 1, paddingRight: 8 },

@@ -10,6 +10,7 @@ import {
   sumarDias,
 } from '../habito';
 import { mensajeRitual } from '../mensajes';
+import { ACENTO } from '../colores';
 
 // "2026-10-23" -> "23/10"
 const corta = (iso) => `${iso.slice(8, 10)}/${iso.slice(5, 7)}`;
@@ -314,14 +315,13 @@ export default function Ritual({ pareja, onVolver }) {
   );
 }
 
-const ACENTO = '#0F766E';
 
 const styles = StyleSheet.create({
-  pantalla: { flex: 1, backgroundColor: '#FAFAF7' },
+  pantalla: { flex: 1, backgroundColor: '#FFF8F5' },
   titulo: { fontSize: 28, fontWeight: '700', color: ACENTO, textAlign: 'center' },
   subtitulo: { fontSize: 15, color: '#555', textAlign: 'center', marginTop: 6, marginBottom: 20 },
   tarjeta: { backgroundColor: '#fff', borderRadius: 16, padding: 18, borderWidth: 1,
-    borderColor: '#E5E5E0', marginBottom: 14 },
+    borderColor: '#F0E4E0', marginBottom: 14 },
   etiqueta: { fontSize: 13, color: '#777', marginBottom: 6 },
   // Mensaje
   heroTitulo: { fontSize: 24, fontWeight: '700', color: '#222' },
@@ -349,13 +349,13 @@ const styles = StyleSheet.create({
   diaDeclarado: { borderStyle: 'dashed', borderColor: '#9A9A95' },
   diaSel: { borderStyle: 'solid', borderColor: ACENTO }, // contorno en el día seleccionado (por defecto, hoy)
   diaTexto: { fontSize: 12, fontWeight: '700', color: '#333' },
-  panelDia: { backgroundColor: '#F6F6F3', borderRadius: 12, padding: 12, marginTop: 14 },
+  panelDia: { backgroundColor: '#FFF3EF', borderRadius: 12, padding: 12, marginTop: 14 },
   panelTitulo: { fontSize: 15, fontWeight: '700', color: '#222' },
   nota: { fontSize: 12, color: '#888', marginTop: 10 },
   // Resumen
   tarjetaArriba: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   navSemana: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    backgroundColor: '#F6F6F3', borderRadius: 12, paddingVertical: 6, paddingHorizontal: 6, marginBottom: 6 },
+    backgroundColor: '#FFF3EF', borderRadius: 12, paddingVertical: 6, paddingHorizontal: 6, marginBottom: 6 },
   flecha: { width: 40, height: 36, alignItems: 'center', justifyContent: 'center' },
   flechaOff: { opacity: 0.25 },
   flechaTexto: { fontSize: 28, color: ACENTO, fontWeight: '700', lineHeight: 32 },
@@ -374,7 +374,7 @@ const styles = StyleSheet.create({
   resumenEtiqueta: { fontSize: 15, color: '#555', flexShrink: 1, paddingRight: 8 },
   resumenValor: { fontSize: 16, fontWeight: '700', color: '#222' },
   resumenTotal: { fontSize: 20, fontWeight: '700', color: '#222' },
-  separador: { height: 1, backgroundColor: '#E5E5E0', marginVertical: 12 },
+  separador: { height: 1, backgroundColor: '#F0E4E0', marginVertical: 12 },
   saldo: { fontSize: 22, fontWeight: '700', marginTop: 4 },
   vacio: { fontSize: 15, color: '#777' },
   boton: { backgroundColor: ACENTO, paddingVertical: 18, borderRadius: 16, marginTop: 6 },
