@@ -34,7 +34,7 @@ Idea clave: la idea de anotar era buena; el **medio** fallaba (sin estructura, s
 Preparar dos teléfonos con Expo Go, una pareja inventada (Ana y Luis) y datos de prueba. Cada momento dura unos 15 segundos.
 
 1. **Pantalla principal.** Mostrar el saldo ("Al día") y la tarjeta "Esta semana" con la barra de 10 tramos, por ejemplo 6/10. *"Lo primero que ves es cómo vas."*
-2. **Anotar a mano un gasto compartido.** Monto, Mitad, quién pagó. Cronometrar en voz alta: *"unos 20 segundos."*
+2. **Anotar a mano un gasto compartido.** Monto, Mitty-Mota (50/50 en jerga chilena), quién pagó. Cronometrar en voz alta: *"unos 20 segundos."*
 3. **Sincronización.** Mirar el segundo teléfono: el gasto aparece solo y el saldo cambia. *"La otra persona lo ve y no hay nada que recordar."*
 4. **Mitty AI por voz.** Decir: *"Invité yo a comer, 25 mil, pero pagó Ana."* Mostrar lo que entendió y confirmar. El saldo pasa a "Luis le debe $25.000". *"Justo el caso que antes nos hacía discutir."*
 5. **Esta semana.** Abrir la tarjeta: el medidor, la raya en 8 (éxito), el mensaje amable y cuántos gastos se anotaron en el momento. *"Nunca hay culpa: cada gasto suma."*

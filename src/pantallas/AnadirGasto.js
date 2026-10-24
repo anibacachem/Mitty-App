@@ -9,7 +9,7 @@ import { ACENTO } from '../colores';
 
 // Las tres formas de repartir un gasto. "valor" es lo que luego se guarda en Supabase.
 const TIPOS = [
-  { valor: 'mitad', titulo: 'Mitad', detalle: '50% y 50%. La otra persona debe la mitad.' },
+  { valor: 'mitad', titulo: 'Mitty-Mota', detalle: '50/50, a medias. La otra persona debe la mitad.' },
   { valor: 'fraccion', titulo: 'Fracción', detalle: 'Cada uno una parte distinta.' },
   { valor: 'invita', titulo: 'Invitación', detalle: 'Uno invitó. Si pagó el otro, se lo debe todo.' },
   { valor: 'personal', titulo: 'Gasto personal', detalle: 'Es de una sola persona. Si pagó el otro, se lo debe todo.' },
