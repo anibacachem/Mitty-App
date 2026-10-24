@@ -11,8 +11,8 @@ import { ACENTO } from '../colores';
 const TIPOS = [
   { valor: 'mitad', titulo: 'Mitad', detalle: '50% y 50%. La otra persona debe la mitad.' },
   { valor: 'fraccion', titulo: 'Fracción', detalle: 'Cada uno una parte distinta.' },
-  { valor: 'invita', titulo: 'Invitación', detalle: 'Uno invitó. No se comparte ni genera deuda.' },
-  { valor: 'personal', titulo: 'Gasto personal', detalle: 'Es de una sola persona. No se comparte ni genera deuda.' },
+  { valor: 'invita', titulo: 'Invitación', detalle: 'Uno invitó. Si pagó el otro, se lo debe todo.' },
+  { valor: 'personal', titulo: 'Gasto personal', detalle: 'Es de una sola persona. Si pagó el otro, se lo debe todo.' },
 ];
 
 // Resumen fijo que aparece arriba en cada paso: "$42.000 · super · Mitad".
@@ -121,10 +121,10 @@ function BarraReparto({ pct, montoIzq, montoDer, nombreIzq, nombreDer, onCambio,
 }
 
 // Flujo para anotar un gasto, de a un paso por pantalla:
-// monto -> tipo (mitad / fracción / invitación) -> ¿quién pagó?
+// monto -> tipo (mitad / fracción / invitación / personal) -> [¿quién invitó? / ¿de quién es?] -> ¿quién pagó?
 // pareja: { codigo, nombre0, nombre1, yo }. onCerrar: cancelar. onGuardado: gasto guardado, volver.
 export default function AnadirGasto({ pareja, onCerrar, onGuardado, registrarAtras }) {
-  // 'monto' | 'tipo' | 'fraccion' | 'quien' | 'listo' (guardando o con error)
+  // 'monto' | 'tipo' | 'fraccion' | 'dueno' | 'quien' | 'listo' (guardando o con error)
   const [paso, setPaso] = useState('monto');
   const [idGasto] = useState(generarId); // un id por gasto, creado una sola vez al abrir el flujo
   const [guardando, setGuardando] = useState(false);
@@ -133,6 +133,7 @@ export default function AnadirGasto({ pareja, onCerrar, onGuardado, registrarAtr
   const [descripcion, setDescripcion] = useState(''); // opcional
   const [tipo, setTipo] = useState(null); // 'mitad' | 'fraccion' | 'invita'
   const [pagador, setPagador] = useState(null); // 0 o 1, igual que en la base de datos
+  const [dueno, setDueno] = useState(null); // 0 o 1: quién invitó / de quién es el gasto (solo Invitación y Personal)
   const [textoParte, setTextoParte] = useState(''); // lo que escribes: la parte tuya en la fracción
   const [partes, setPartes] = useState(null); // [parte de nombre0, parte de nombre1] ya calculadas
   const [modoFraccion, setModoFraccion] = useState('porcentaje'); // 'porcentaje' (barra, por defecto) o 'cantidad' ($)
@@ -142,6 +143,10 @@ export default function AnadirGasto({ pareja, onCerrar, onGuardado, registrarAtr
   const [cuando, setCuando] = useState('hoy'); // 'hoy' | 'ayer' | 'otro'
   const [dia, setDia] = useState(''); // solo se usa con "Otro día"
   const [mes, setMes] = useState('');
+
+  // Invitación y Personal preguntan primero de quién es el gasto; Fracción pide sus montos; Mitad viene del tipo
+  const tieneDueno = tipo === 'invita' || tipo === 'personal';
+  const pasoAntesDeQuien = tieneDueno ? 'dueno' : tipo === 'fraccion' ? 'fraccion' : 'tipo';
 
   // "Atrás" por gesto o botón del teléfono: retrocede UN paso del flujo en vez de salir de golpe.
   // Devuelve true si retrocedió un paso; false si estamos en el primero (entonces se cierra la pantalla).
@@ -153,8 +158,9 @@ export default function AnadirGasto({ pareja, onCerrar, onGuardado, registrarAtr
         return true;
       }
       if (paso === 'tipo') { setPaso('monto'); return true; }
+      if (paso === 'dueno') { setPaso('tipo'); return true; }
       if (paso === 'fraccion') { setPaso('tipo'); return true; }
-      if (paso === 'quien') { setPaso(tipo === 'fraccion' ? 'fraccion' : 'tipo'); return true; }
+      if (paso === 'quien') { setPaso(pasoAntesDeQuien); return true; }
       return false;
     });
   });
@@ -179,7 +185,8 @@ export default function AnadirGasto({ pareja, onCerrar, onGuardado, registrarAtr
   if (cuando === 'ayer') extra.push('Ayer');
   if (cuando === 'otro' && fecha) extra.push(`${fecha.slice(8, 10)}/${fecha.slice(5, 7)}`);
   if (tipo) extra.push(TIPOS.find((t) => t.valor === tipo).titulo);
-  if (pagador !== null) extra.push(tipo === 'personal' ? `De ${nombres[pagador]}` : `Pagó ${nombres[pagador]}`);
+  if (tieneDueno && dueno !== null) extra.push(`${tipo === 'invita' ? 'Invitó' : 'De'} ${nombres[dueno]}`);
+  if (pagador !== null) extra.push(`Pagó ${nombres[pagador]}`);
 
   // Mientras escribes, mostramos el monto con puntos de miles (42.000)
   function cambiarMonto(texto) {
@@ -243,11 +250,12 @@ export default function AnadirGasto({ pareja, onCerrar, onGuardado, registrarAtr
   function elegirTipo(valor) {
     setTipo(valor);
     setPagador(null);
+    setDueno(null);
     setPartes(null);
     setModoFraccion('porcentaje'); // la fracción abre con la barra, partiendo en 50% (la mitad)
     setPct(50);
     setTextoParte(formatearMonto(Math.round(monto / 2))); // así "Continuar" ya está listo con la mitad
-    setPaso(valor === 'fraccion' ? 'fraccion' : 'quien');
+    setPaso(valor === 'fraccion' ? 'fraccion' : valor === 'invita' || valor === 'personal' ? 'dueno' : 'quien');
   }
 
   // Al elegir quién pagó, el gasto queda completo y se guarda de inmediato (sin botón extra).
@@ -267,7 +275,7 @@ export default function AnadirGasto({ pareja, onCerrar, onGuardado, registrarAtr
       descripcion: descripcion.trim() || 'Gasto', // la columna no admite vacío
       monto,
       pagador: indicePagador, // 0 o 1
-      tipo,                   // 'mitad' | 'fraccion' | 'invita'
+      tipo,                   // 'mitad' | 'fraccion' | 'invita' | 'personal'
       fecha,                  // el día en que ocurrió el gasto (hoy, ayer u otro día)
     };
     // Solo la fracción guarda las dos partes; mitad e invitación no las necesitan
@@ -275,6 +283,8 @@ export default function AnadirGasto({ pareja, onCerrar, onGuardado, registrarAtr
       fila.parte0 = partes[0];
       fila.parte1 = partes[1];
     }
+    // Invitación y Personal guardan además de quién es el gasto (puede ser distinto de quien pagó)
+    if (tieneDueno) fila.dueno = dueno;
     try {
       await pedir('movimientos', { metodo: 'POST', cuerpo: fila, codigoPareja: pareja.codigo });
       onGuardado(); // listo: volvemos a la pantalla principal
@@ -402,13 +412,33 @@ export default function AnadirGasto({ pareja, onCerrar, onGuardado, registrarAtr
     );
   }
 
+  // ---- Paso: ¿quién invitó? / ¿de quién es el gasto? (solo Invitación y Personal) ----
+  if (paso === 'dueno') {
+    const otroIndice = pareja.yo === 0 ? 1 : 0;
+    return (
+      <View style={styles.contenedor}>
+        {resumen}
+        <Text style={styles.pregunta}>{tipo === 'invita' ? '¿Quién invitó?' : '¿De quién es el gasto?'}</Text>
+        <Pressable style={styles.botonGrande} onPress={() => { setDueno(pareja.yo); setPaso('quien'); }}>
+          <Text style={styles.textoBoton}>{miNombre} (tú)</Text>
+        </Pressable>
+        <Pressable style={styles.botonGrandeClaro} onPress={() => { setDueno(otroIndice); setPaso('quien'); }}>
+          <Text style={styles.textoBotonClaro}>{otroNombre}</Text>
+        </Pressable>
+        <Pressable onPress={() => setPaso('tipo')}>
+          <Text style={styles.enlace}>Atrás</Text>
+        </Pressable>
+      </View>
+    );
+  }
+
   // ---- Paso: ¿quién pagó? (tú primero y resaltado, porque casi siempre pagas tú) ----
   if (paso === 'quien') {
     return (
       <View style={styles.contenedor}>
         {resumen}
         <Text style={styles.pregunta}>
-          {tipo === 'invita' ? '¿Quién invitó y pagó?' : tipo === 'personal' ? '¿De quién es el gasto?' : '¿Quién pagó?'}
+          ¿Quién pagó?
         </Text>
         <Pressable style={styles.botonGrande} onPress={() => elegirPagador(pareja.yo)}>
           <Text style={styles.textoBoton}>{miNombre} (tú)</Text>
@@ -416,7 +446,7 @@ export default function AnadirGasto({ pareja, onCerrar, onGuardado, registrarAtr
         <Pressable style={styles.botonGrandeClaro} onPress={() => elegirPagador(pareja.yo === 0 ? 1 : 0)}>
           <Text style={styles.textoBotonClaro}>{otroNombre}</Text>
         </Pressable>
-        <Pressable onPress={() => setPaso(tipo === 'fraccion' ? 'fraccion' : 'tipo')}>
+        <Pressable onPress={() => setPaso(pasoAntesDeQuien)}>
           <Text style={styles.enlace}>Atrás</Text>
         </Pressable>
       </View>

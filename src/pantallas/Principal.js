@@ -168,7 +168,7 @@ export default function Principal({ pareja, aviso, onAnadir, onAsistente, onRitu
   const hayPersonal = balanceMes.personal[0] + balanceMes.personal[1] > 0;
   const filasDetalle = [
     { texto: 'Gasto total', valores: orden.map((i) => pesos(balanceMes.gastado[i] - balanceMes.personal[i])) },
-    { texto: 'Le correspondía', valores: orden.map((i) => pesos(balanceMes.corresponde[i] - balanceMes.personal[i])) },
+    { texto: 'Le correspondía', valores: orden.map((i) => pesos(balanceMes.corresponde[i] - balanceMes.personalDueno[i])) },
   ];
   if (hayPersonal) {
     filasDetalle.push({

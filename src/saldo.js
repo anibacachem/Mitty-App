@@ -20,9 +20,9 @@ export function cuantoLeToca(mov) {
     case 'por_otro': // el gasto era todo del otro
       partes[otro] = monto;
       break;
-    case 'invita': // quien paga invita: el gasto es suyo, no genera deuda
-    case 'personal':
-      partes[pagador] = monto;
+    case 'invita': // el gasto es de quien invitó (el "dueño"). Si pagó él mismo, no hay deuda;
+    case 'personal': // si pagó el otro, el dueño le debe todo. Sin "dueno" (gastos antiguos) = quien pagó.
+      partes[mov.dueno ?? pagador] = monto;
       break;
     default: // 'pago' no es un gasto: no reparte nada
       break;
@@ -43,13 +43,17 @@ export function calcularBalance(movimientos) {
   const corresponde = [0, 0];
   const pagosEnviados = [0, 0];
   const pagosRecibidos = [0, 0];
-  const personal = [0, 0]; // gastos personales de cada uno (ya están dentro de gastado y corresponde, a la par)
+  const personal = [0, 0]; // gastos personales que PAGÓ cada uno (ya están dentro de gastado)
+  const personalDueno = [0, 0]; // gastos personales que LE CORRESPONDEN a cada uno (ya están dentro de corresponde)
 
   for (const m of movimientos) {
     const monto = Number(m.monto);
     const pagador = m.pagador;
     const otro = pagador === 0 ? 1 : 0;
-    if (m.tipo === 'personal') personal[pagador] += monto;
+    if (m.tipo === 'personal') {
+      personal[pagador] += monto;
+      personalDueno[m.dueno ?? pagador] += monto;
+    }
 
     if (m.tipo === 'pago') {
       pagosEnviados[pagador] += monto;
@@ -65,7 +69,7 @@ export function calcularBalance(movimientos) {
   const neto = [0, 1].map(
     (i) => gastado[i] - corresponde[i] + pagosEnviados[i] - pagosRecibidos[i]
   );
-  return { gastado, corresponde, pagosEnviados, pagosRecibidos, personal, neto };
+  return { gastado, corresponde, pagosEnviados, pagosRecibidos, personal, personalDueno, neto };
 }
 
 // Texto del reparto de un gasto, para mostrar al tocar una fila.
@@ -73,8 +77,12 @@ export function calcularBalance(movimientos) {
 export function textoReparto(mov, nombres) {
   const otro = mov.pagador === 0 ? 1 : 0;
   if (mov.tipo === 'pago') return `${nombres[mov.pagador]} le pagó a ${nombres[otro]}`;
-  if (mov.tipo === 'invita') return `Invitó ${nombres[mov.pagador]}: no genera deuda`;
-  if (mov.tipo === 'personal') return `Gasto personal de ${nombres[mov.pagador]}: no genera deuda`;
+  if (mov.tipo === 'invita' || mov.tipo === 'personal') {
+    const dueno = mov.dueno ?? mov.pagador; // quién invitó / de quién es el gasto
+    const quien = mov.tipo === 'invita' ? `Invitó ${nombres[dueno]}` : `Gasto personal de ${nombres[dueno]}`;
+    if (dueno === mov.pagador) return `${quien}: no genera deuda`;
+    return `${quien}, lo pagó ${nombres[mov.pagador]}: ${nombres[dueno]} le debe todo`;
+  }
   const partes = cuantoLeToca(mov);
   return `${nombres[0]} ${pesos(partes[0])} · ${nombres[1]} ${pesos(partes[1])}`;
 }
