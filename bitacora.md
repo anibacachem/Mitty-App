@@ -65,3 +65,4 @@
 - feat: borrar un gasto deslizándolo a la izquierda, con confirmación | archivos: src/componentes/FilaDeslizable.js, src/pantallas/Principal.js | motivo: corregir gastos mal anotados (los pagos del cierre no se borran)
 - fix: el fondo rojo Eliminar solo se ve al arrastrar | archivos: src/componentes/FilaDeslizable.js | motivo: se veía el texto en todas las filas
 - feat: seleccionar uno o varios gastos para eliminar (se quita el arrastre) | archivos: src/pantallas/Principal.js, README.md, src/componentes/FilaDeslizable.js (eliminar) | motivo: el arrastre separaba mucho las filas; los pagos del cierre no se borran
+- style: títulos de los grupos del Detalle más oscuros | archivos: src/pantallas/Principal.js | motivo: mejor lectura, mismo color que Resultado

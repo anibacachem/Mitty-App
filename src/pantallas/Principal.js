@@ -647,7 +647,7 @@ const styles = StyleSheet.create({
   detalleFila: { flexDirection: 'row', alignItems: 'center', paddingVertical: 6 },
   detalleTexto: { flex: 1.3, fontSize: 14, color: '#555' },
   detalleCol: { flex: 1, fontSize: 14, color: '#222', textAlign: 'right' },
-  detalleSeccion: { fontSize: 12, fontWeight: '700', color: '#777', marginTop: 10, marginBottom: 2, textTransform: 'uppercase' },
+  detalleSeccion: { fontSize: 12, fontWeight: '700', color: '#555', marginTop: 10, marginBottom: 2, textTransform: 'uppercase' },
   detalleNombre: { fontWeight: '700', color: ACENTO },
   detalleTotal: { borderTopWidth: 1, borderTopColor: '#F0E4E0', marginTop: 4, paddingTop: 10 },
   rojo: { color: '#B91C1C' },
