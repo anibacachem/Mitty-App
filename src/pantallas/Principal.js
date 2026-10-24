@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { ActivityIndicator, FlatList, Pressable, ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
+import { ActivityIndicator, Alert, FlatList, Pressable, ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
 import * as Clipboard from 'expo-clipboard';
 import { cargarTodo } from '../datos';
 import { etiquetaTipo, fechaConDia, hoyISO, pesos } from '../formato';
@@ -96,6 +96,26 @@ export default function Principal({ pareja, aviso, onAnadir, onAsistente, onRitu
     } catch (e) {
       setNotaRecord('No se pudo activar: ' + String(e.message).slice(0, 120));
     }
+  }
+
+  // Cerrar sesión pide confirmación: como no hay usuario y contraseña, el código de la pareja es la única
+  // llave para volver a entrar. Los gastos no se borran: siguen guardados en Supabase.
+  function pedirSalir() {
+    Alert.alert(
+      'Cerrar sesión',
+      `Para volver a entrar necesitarás el código de tu pareja: ${pareja.codigo}. Tus gastos no se borran, quedan guardados.`,
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        { text: 'Salir sin copiar', style: 'destructive', onPress: onSalir },
+        {
+          text: 'Copiar código y salir',
+          onPress: async () => {
+            await Clipboard.setStringAsync(pareja.codigo);
+            onSalir();
+          },
+        },
+      ]
+    );
   }
 
   async function copiarCodigo() {
@@ -412,7 +432,7 @@ export default function Principal({ pareja, aviso, onAnadir, onAsistente, onRitu
         renderItem={null}
         ListHeaderComponent={encabezado}
         ListFooterComponent={
-          <Pressable onPress={onSalir}>
+          <Pressable onPress={pedirSalir}>
             <Text style={styles.salir}>Cerrar sesión</Text>
           </Pressable>
         }
