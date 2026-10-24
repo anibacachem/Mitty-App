@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator, Keyboard, PanResponder, Pressable, ScrollView, StyleSheet, Text, TextInput, View,
 } from 'react-native';
@@ -121,7 +121,7 @@ function BarraReparto({ pct, montoIzq, montoDer, nombreIzq, nombreDer, onCambio,
 // Flujo para anotar un gasto, de a un paso por pantalla:
 // monto -> tipo (mitad / fracción / invitación) -> ¿quién pagó?
 // pareja: { codigo, nombre0, nombre1, yo }. onCerrar: cancelar. onGuardado: gasto guardado, volver.
-export default function AnadirGasto({ pareja, onCerrar, onGuardado }) {
+export default function AnadirGasto({ pareja, onCerrar, onGuardado, registrarAtras }) {
   // 'monto' | 'tipo' | 'fraccion' | 'quien' | 'listo' (guardando o con error)
   const [paso, setPaso] = useState('monto');
   const [idGasto] = useState(generarId); // un id por gasto, creado una sola vez al abrir el flujo
@@ -140,6 +140,23 @@ export default function AnadirGasto({ pareja, onCerrar, onGuardado }) {
   const [cuando, setCuando] = useState('hoy'); // 'hoy' | 'ayer' | 'otro'
   const [dia, setDia] = useState(''); // solo se usa con "Otro día"
   const [mes, setMes] = useState('');
+
+  // "Atrás" por gesto o botón del teléfono: retrocede UN paso del flujo en vez de salir de golpe.
+  // Devuelve true si retrocedió un paso; false si estamos en el primero (entonces se cierra la pantalla).
+  // Sin lista de dependencias a propósito: se vuelve a registrar en cada render con el paso actual.
+  useEffect(() => {
+    registrarAtras?.(() => {
+      if (paso === 'listo') {
+        if (!guardando) setPaso('quien'); // con error se puede volver; guardando, no
+        return true;
+      }
+      if (paso === 'tipo') { setPaso('monto'); return true; }
+      if (paso === 'fraccion') { setPaso('tipo'); return true; }
+      if (paso === 'quien') { setPaso(tipo === 'fraccion' ? 'fraccion' : 'tipo'); return true; }
+      return false;
+    });
+  });
+  useEffect(() => () => registrarAtras?.(null), []); // al salir, la pantalla se desregistra
 
   const monto = soloDigitos(textoMonto); // el número real: 42000
 
