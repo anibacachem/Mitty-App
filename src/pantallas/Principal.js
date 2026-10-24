@@ -424,11 +424,6 @@ export default function Principal({ pareja, aviso, onAnadir, onAsistente, onRitu
         data={[]} // los gastos van dentro de la caja con scroll del encabezado
         renderItem={null}
         ListHeaderComponent={encabezado}
-        ListFooterComponent={
-          <Pressable onPress={pedirSalir}>
-            <Text style={styles.salir}>Cerrar sesión</Text>
-          </Pressable>
-        }
         refreshing={refrescando}
         onRefresh={() => {
           setRefrescando(true);
@@ -465,6 +460,19 @@ export default function Principal({ pareja, aviso, onAnadir, onAsistente, onRitu
               />
             </View>
             {notaRecord !== '' && <Text style={styles.recordNota}>{notaRecord}</Text>}
+
+            <View style={styles.ajustesSeparador} />
+
+            {/* Cerrar sesión: primero cerramos esta ventana y luego mostramos la confirmación.
+                En iPhone, un aviso no puede abrirse encima de otra ventana, por eso la pequeña espera. */}
+            <Pressable
+              onPress={() => {
+                setAjustesAbiertos(false);
+                setTimeout(pedirSalir, 350);
+              }}
+            >
+              <Text style={styles.salirAjustes}>Cerrar sesión</Text>
+            </Pressable>
 
             <Pressable style={styles.cerrarAjustes} onPress={() => setAjustesAbiertos(false)}>
               <Text style={styles.cerrarAjustesTexto}>Cerrar</Text>
@@ -555,7 +563,7 @@ const styles = StyleSheet.create({
   codigoValor: { fontSize: 18, fontWeight: '700', letterSpacing: 2, color: '#333' },
   copiar: { color: ACENTO, fontSize: 15, fontWeight: '700' },
   ajustesSeparador: { height: 1, backgroundColor: '#E5E5E0', marginVertical: 16 },
-  cerrarAjustes: { marginTop: 16, paddingVertical: 10 },
+  cerrarAjustes: { marginTop: 8, paddingVertical: 10 },
   cerrarAjustesTexto: { color: ACENTO, fontSize: 15, fontWeight: '600', textAlign: 'center' },
   recordFila: { flexDirection: 'row', alignItems: 'center' },
   recordTitulo: { fontSize: 15, fontWeight: '700', color: '#222' },
@@ -588,7 +596,7 @@ const styles = StyleSheet.create({
   filaMonto: { fontSize: 17, fontWeight: '700', color: '#222', marginLeft: 12 },
   reparto: { fontSize: 14, color: ACENTO, fontWeight: '600', marginTop: 10, paddingTop: 10,
     borderTopWidth: 1, borderTopColor: '#EEE' },
-  salir: { color: '#B91C1C', fontSize: 15, textAlign: 'center', marginTop: 36 },
+  salirAjustes: { color: '#B91C1C', fontSize: 15, fontWeight: '600', textAlign: 'center', paddingVertical: 4 },
   aviso: { position: 'absolute', top: 12, left: 24, right: 24, backgroundColor: ACENTO,
     borderRadius: 12, paddingVertical: 12, shadowColor: '#000', shadowOpacity: 0.2,
     shadowRadius: 6, shadowOffset: { width: 0, height: 2 }, elevation: 4 },
