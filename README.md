@@ -19,7 +19,7 @@ Sabremos que el hábito cambió si, durante cuatro semanas:
 - La mayoría de los gastos se anotan el mismo día en que ocurren.
 - Saldar la cuenta del mes toma menos de 5 minutos y sin discusión.
 
-Prueba de velocidad: el autor anotó gastos de prueba, tanto a mano como con Mitty AI, y le tomó alrededor de 20 segundos cada uno, que es la meta que nos pusimos. Fue una prueba informal de una sola persona, no una medición con varias parejas. Los recordatorios del engranaje (10:00, 15:00 y 20:00) abren directo "Añadir gasto" al tocarlos.
+Prueba de velocidad: el autor anotó gastos de prueba, tanto a mano como con Mitty AI, y le tomó alrededor de 20 segundos cada uno, que es la meta que nos pusimos. Fue una prueba informal de una sola persona, no una medición con varias parejas.
 
 Limitación: la app no sabe cuántos gastos hubo en realidad. Un gasto que nadie anotó no se detecta, y la meta de 10 es fija, igual para una semana de muchos gastos que para una de pocos. El acceso es solo por el código de la pareja: quien lo tenga puede ver y eliminar sus gastos.
 
@@ -41,6 +41,7 @@ Limitación: la app no sabe cuántos gastos hubo en realidad. Un gasto que nadie
 - **Inicio de sesión:** el acceso es por código de pareja, suficiente para un prototipo. Con datos reales haría falta iniciar sesión.
 - **Varias parejas por cuenta:** no cambia la hipótesis que queremos probar.
 - **Penalizar anotar tarde:** se muestra cuántos gastos se anotaron en el momento, pero no resta puntos, para no castigar a quien anota después.
+- **Abrir "Añadir gasto" al tocar un recordatorio:** el código existe, pero no se logró verificar en el teléfono; hoy el aviso solo abre la app.
 - **Recordatorios inteligentes, widget y accesos rápidos:** los recordatorios del engranaje son tres avisos fijos al día (10:00, 15:00 y 20:00); que se salten cuando ya anotaste, un widget y los accesos rápidos quedaron para una siguiente versión.
 - **Mejoras de Mitty AI:** corregir un campo sin repetir la frase, y más idiomas o acentos en la voz.
 

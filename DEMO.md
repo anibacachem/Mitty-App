@@ -39,7 +39,7 @@ Preparar dos teléfonos con Expo Go, una pareja inventada (Ana y Luis) y datos d
 4. **Mitty AI por voz.** Decir: *"Invité yo a comer, 25 mil, pero pagó Ana."* Mostrar lo que entendió y confirmar. El saldo pasa a "Luis le debe $25.000". *"Justo el caso que antes nos hacía discutir."*
 5. **Esta semana.** Abrir la tarjeta: el medidor, la raya en 8 (éxito), el mensaje amable y cuántos gastos se anotaron en el momento. *"Nunca hay culpa: cada gasto suma."*
 6. **Detalle del saldo.** Dos grupos: compartidos y personales e invitaciones. *"Se entiende de dónde sale cada número."*
-7. **Recordatorios.** Activar en el engranaje y mostrar la notificación; al tocarla abre directo "Añadir gasto". *"Un toque desde el aviso."*
+7. **Recordatorios.** Activar en el engranaje y mostrar la notificación de prueba. *"Tres avisos al día, a las 10:00, 15:00 y 20:00, para no depender de la memoria."* (No prometer que al tocarla abre "Añadir gasto": esa parte no está verificada.)
 8. **Saldar cuenta del mes.** Un botón, confirmación, saldo en cero. *"Lo que antes era una noche de discusión, hoy es un botón."*
 
 Si la IA falla o no hay internet: seguir con el gasto manual (es el plan B) y decir que la IA es una ayuda, no un requisito.
