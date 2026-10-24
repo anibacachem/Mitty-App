@@ -14,6 +14,7 @@ import CierreMes from './src/pantallas/CierreMes';
 import AsistenteIA from './src/pantallas/AsistenteIA';
 import { ACENTO, FONDO } from './src/colores';
 import { borrarSesion, guardarSesion, leerSesion } from './src/sesion';
+import { cancelarRecordatorios, guardarActivado } from './src/notificaciones';
 
 // A qué pantalla se vuelve desde cada una. Las que no están aquí (inicio y principal) son "raíz": no hay atrás.
 const DESTINO_ATRAS = {
@@ -127,6 +128,9 @@ export default function App() {
 
   // Salir: borra la sesión y vuelve al inicio.
   async function salir() {
+    // Al salir se apagan los recordatorios: no deben seguir llegando a quien ya no tiene la sesión abierta
+    await cancelarRecordatorios().catch(() => {});
+    await guardarActivado(false).catch(() => {});
     await borrarSesion();
     setPareja(null);
     setPantalla('inicio');

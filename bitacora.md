@@ -70,3 +70,4 @@
 - style: subtítulo del saludo en Nunito y menos espacio hasta la primera caja | archivos: App.js, src/pantallas/Principal.js | motivo: encabezado más compacto y con la misma letra
 - style: Cierre de mes pasa a Saldar cuenta del mes y el resumen dice gastó | archivos: src/pantallas/CierreMes.js, src/pantallas/Principal.js, README.md | motivo: nombres más claros
 - docs: README, CLAUDE.md, AGENTS.md y esquema al día con la meta 8 de 10, Mitty AI y sin metas_dia | archivos: README.md, CLAUDE.md, AGENTS.md, supabase/esquema.sql, supabase/metas_dia.sql (eliminar) | motivo: repositorio coherente para la entrega
+- feat: recordatorios diarios fijos a las 10:00, 15:00 y 20:00 | archivos: src/notificaciones.js, src/pantallas/Principal.js, App.js, README.md | motivo: que el interruptor del engranaje programe los avisos de verdad (antes solo mandaba una prueba)

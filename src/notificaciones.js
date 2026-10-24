@@ -59,3 +59,43 @@ export async function notificacionDePrueba(nombre) {
     },
   });
 }
+
+// ---- Recordatorios diarios fijos ----
+// Tres avisos al día, a la misma hora todos los días. Los programa el teléfono (no hace falta internet ni servidor).
+// Cada uno tiene un "id" fijo: si se vuelve a programar con el mismo id, REEMPLAZA al anterior (nunca se duplican).
+const HORARIOS = [
+  { id: 'mitty-recordatorio-10', hora: 10, minuto: 0,
+    texto: (n) => `${n}, ¿ya hubo algún gasto esta mañana? Anótalo ahora, toma segundos.` },
+  { id: 'mitty-recordatorio-15', hora: 15, minuto: 0,
+    texto: (n) => `${n}, ¿almuerzo, café o transporte? Anótalo antes de que se te pase.` },
+  { id: 'mitty-recordatorio-20', hora: 20, minuto: 0,
+    texto: (n) => `${n}, cierra el día: ¿quedó algún gasto sin anotar?` },
+];
+
+// Apaga los tres avisos diarios (si alguno no existía, no pasa nada)
+export async function cancelarRecordatorios() {
+  for (const h of HORARIOS) {
+    try {
+      await Notifications.cancelScheduledNotificationAsync(h.id);
+    } catch {
+      // no existía: seguimos con el siguiente
+    }
+  }
+}
+
+// Programa los tres avisos diarios (10:00, 15:00 y 20:00, hora del teléfono). Es seguro llamarla varias veces.
+export async function programarRecordatorios(nombre) {
+  await cancelarRecordatorios();
+  for (const h of HORARIOS) {
+    await Notifications.scheduleNotificationAsync({
+      identifier: h.id,
+      content: { title: 'Mitty', body: h.texto(nombre) },
+      trigger: {
+        type: Notifications.SchedulableTriggerInputTypes.DAILY,
+        hour: h.hora,
+        minute: h.minuto,
+        channelId: CANAL,
+      },
+    });
+  }
+}

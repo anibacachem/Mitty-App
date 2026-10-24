@@ -6,7 +6,9 @@ import { pedir } from '../supabase';
 import { etiquetaTipo, fechaConDia, hoyISO, pesos } from '../formato';
 import { calcularBalance, describirSaldo, resultadoEnPalabras, textoReparto } from '../saldo';
 import { EXITO_SEMANA, META_SEMANA, limitesDelMes, medirSemana, semanaCompleta } from '../habito';
-import { guardarActivado, leerActivado, notificacionDePrueba, pedirPermiso } from '../notificaciones';
+import {
+  cancelarRecordatorios, guardarActivado, leerActivado, notificacionDePrueba, pedirPermiso, programarRecordatorios,
+} from '../notificaciones';
 import { ACENTO } from '../colores';
 
 const CADA_CUANTO_MS = 5000; // los datos se refrescan solos cada 5 segundos
@@ -70,17 +72,24 @@ export default function Principal({ pareja, aviso, onAnadir, onAsistente, onRitu
   // El "return" apaga el reloj al salir de la pantalla, para no pedir datos de más.
   useEffect(() => {
     cargar();
-    leerActivado().then(setRecordatorios); // recordamos lo que eligió la última vez
+    // Recordamos lo que eligió la última vez. Si estaban activados, los volvemos a programar
+    // (es seguro: reemplaza a los anteriores) para que sigan al día con tu nombre y no se pierdan.
+    leerActivado().then((activado) => {
+      setRecordatorios(activado);
+      if (activado) programarRecordatorios(miNombre).catch(() => {});
+    });
     const reloj = setInterval(cargar, CADA_CUANTO_MS);
     return () => clearInterval(reloj);
   }, []);
 
-  // Interruptor de recordatorios. Al activar: pedimos permiso y mandamos una notificación de prueba.
+  // Interruptor de recordatorios. Al activar: pedimos permiso, programamos los avisos de las 10:00, 15:00 y 20:00
+  // y mandamos una notificación de prueba. Al apagar: cancelamos los tres avisos.
   async function cambiarRecordatorios(quiere) {
     setNotaRecord('');
     if (!quiere) {
       setRecordatorios(false);
       await guardarActivado(false);
+      await cancelarRecordatorios().catch(() => {});
       return;
     }
     try {
@@ -89,10 +98,11 @@ export default function Principal({ pareja, aviso, onAnadir, onAsistente, onRitu
         setNotaRecord('Sin permiso. Actívalo en los ajustes del teléfono para recibir recordatorios.');
         return; // el interruptor se queda apagado
       }
+      await programarRecordatorios(miNombre);
       await notificacionDePrueba(miNombre);
       setRecordatorios(true);
       await guardarActivado(true);
-      setNotaRecord('Listo. En unos segundos te llegará una notificación de prueba.');
+      setNotaRecord('Listo. Te avisaremos a las 10:00, 15:00 y 20:00. En unos segundos llega una prueba.');
     } catch (e) {
       setNotaRecord('No se pudo activar: ' + String(e.message).slice(0, 120));
     }
@@ -556,7 +566,7 @@ export default function Principal({ pareja, aviso, onAnadir, onAsistente, onRitu
             <View style={styles.recordFila}>
               <View style={{ flex: 1, paddingRight: 12 }}>
                 <Text style={styles.recordTitulo}>Recordatorios diarios</Text>
-                <Text style={styles.recordSub}>Te avisamos para que anotes tus gastos en pareja</Text>
+                <Text style={styles.recordSub}>Tres avisos al día (10:00, 15:00 y 20:00) para anotar tus gastos</Text>
               </View>
               <Switch
                 value={recordatorios}

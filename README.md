@@ -39,7 +39,7 @@ Limitación: la app no sabe cuántos gastos hubo en realidad. Un gasto que nadie
 - **Inicio de sesión:** el acceso es por código de pareja, suficiente para un prototipo. Con datos reales haría falta iniciar sesión.
 - **Varias parejas por cuenta:** no cambia la hipótesis que queremos probar.
 - **Penalizar anotar tarde:** se muestra cuántos gastos se anotaron en el momento, pero no resta puntos, para no castigar a quien anota después.
-- **Recordatorios diarios automáticos:** el interruptor del engranaje pide permiso y envía un aviso de prueba. Los avisos programados (por ejemplo a las 10:00, 15:00 y 20:00), un widget y los accesos rápidos quedaron para una siguiente versión.
+- **Recordatorios inteligentes, widget y accesos rápidos:** los recordatorios del engranaje son tres avisos fijos al día (10:00, 15:00 y 20:00); que se salten cuando ya anotaste, un widget y los accesos rápidos quedaron para una siguiente versión.
 - **Mejoras de Mitty AI:** corregir un campo sin repetir la frase, y más idiomas o acentos en la voz.
 
 ## Cómo probarlo
