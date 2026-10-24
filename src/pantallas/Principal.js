@@ -237,11 +237,11 @@ export default function Principal({ pareja, aviso, onAnadir, onAsistente, onRitu
       <View style={styles.filaAnadir}>
         {/* Mitty AI: abre el chat para anotar un gasto escribiendo o hablando */}
         <Pressable style={styles.botonIA} onPress={onAsistente}>
+          <Text style={styles.textoIADos}>Añadir gasto con</Text>
           <Text style={styles.textoIAUno}>✦ Mitty AI</Text>
-          <Text style={styles.textoIADos}>añadir gasto</Text>
         </Pressable>
         <Pressable style={styles.botonAnadir} onPress={onAnadir}>
-          <Text style={styles.textoAnadir}>+ Añadir gasto</Text>
+          <Text style={styles.textoAnadir}>+ Añadir gasto manual</Text>
         </Pressable>
       </View>
 
@@ -477,14 +477,15 @@ const styles = StyleSheet.create({
   puntoMal: { backgroundColor: '#B91C1C' },
   estadoTexto: { fontSize: 12, color: '#777' },
   filaAnadir: { flexDirection: 'row', marginTop: 16 },
-  botonAnadir: { flex: 1.2, backgroundColor: ACENTO, paddingVertical: 20, borderRadius: 16,
-    alignItems: 'center', justifyContent: 'center' },
-  textoAnadir: { color: '#fff', fontSize: 18, fontWeight: '700', textAlign: 'center' },
+  // Los dos botones comparten tamaño: mismo flex, mismo alto mínimo y mismo relleno
+  botonAnadir: { flex: 1, minHeight: 68, backgroundColor: ACENTO, paddingVertical: 12, paddingHorizontal: 8,
+    borderRadius: 16, alignItems: 'center', justifyContent: 'center' },
+  textoAnadir: { color: '#fff', fontSize: 17, fontWeight: '700', textAlign: 'center' },
   // Mitty AI: oscuro y con el símbolo ✦ para que se lea como "la opción de IA"
-  botonIA: { flex: 1, backgroundColor: '#134E4A', paddingVertical: 12, borderRadius: 16, marginRight: 10,
-    alignItems: 'center', justifyContent: 'center' },
-  textoIAUno: { color: '#fff', fontSize: 17, fontWeight: '800' },
-  textoIADos: { color: '#9FD8D0', fontSize: 12, fontWeight: '600', marginTop: 1 },
+  botonIA: { flex: 1, minHeight: 68, backgroundColor: '#134E4A', paddingVertical: 12, paddingHorizontal: 8,
+    borderRadius: 16, marginRight: 10, alignItems: 'center', justifyContent: 'center' },
+  textoIAUno: { color: '#fff', fontSize: 18, fontWeight: '800' },
+  textoIADos: { color: '#9FD8D0', fontSize: 12, fontWeight: '600', marginBottom: 1 },
   tarjetaHoy: { backgroundColor: '#fff', borderRadius: 16, padding: 16, borderWidth: 1,
     borderColor: '#E5E5E0', marginTop: 12 },
   hoyFila: { flexDirection: 'row', alignItems: 'center' },

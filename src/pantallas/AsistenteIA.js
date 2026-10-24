@@ -219,7 +219,7 @@ export default function AsistenteIA({ pareja, onVolver }) {
     <KeyboardAvoidingView style={styles.pantalla} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
       {/* Encabezado */}
       <View style={styles.encabezado}>
-        <Text style={styles.titulo}>Asistente</Text>
+        <Text style={styles.titulo}>✦ Mitty AI</Text>
         <Pressable onPress={onVolver} hitSlop={10}>
           <Text style={styles.cerrar}>Cerrar</Text>
         </Pressable>
