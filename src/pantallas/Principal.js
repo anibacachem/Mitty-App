@@ -284,8 +284,8 @@ export default function Principal({ pareja, aviso, onAnadir, onAsistente, onRitu
         </View>
         <Text style={styles.hoySub}>
           {medSemana.estado === 'logrado'
-            ? '¡Meta de la semana lograda!'
-            : `Faltan ${medSemana.faltan} para la meta de ${EXITO_SEMANA}`}
+            ? '¡Semana lograda!'
+            : `Faltan ${medSemana.faltan} para lograr la semana (${EXITO_SEMANA})`}
           {` · Hoy: ${anotadosHoy} ${anotadosHoy === 1 ? 'anotado' : 'anotados'}`}
         </Text>
         <Text style={styles.hoyVer}>{esDomingo ? 'Hoy es domingo: toca para revisar tu semana' : 'Toca para ver tu semana y el mes'}</Text>

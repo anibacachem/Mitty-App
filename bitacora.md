@@ -60,3 +60,5 @@
 - feat: Ritual con meta semanal 8 de 10 y acumulado del mes | archivos: src/habito.js, src/mensajes.js, src/pantallas/Ritual.js | motivo: medir el hábito de anotar gastos en el momento, con semanas lunes a domingo completas
 - feat: pantalla principal muestra la semana X/10 y se limpia lo de declarar días | archivos: src/pantallas/Principal.js, src/datos.js, src/habito.js | motivo: una sola meta (8 de 10 por semana) en toda la app
 - refactor: se quita el Resumen del Ritual y el botón Ritual de domingo; la pantalla pasa a llamarse Esta semana | archivos: src/pantallas/Ritual.js, src/pantallas/Principal.js, README.md | motivo: app más ordenada, la tarjeta Esta semana lleva a la pantalla
+- fix: mensaje de meta lograda más claro | archivos: src/mensajes.js | motivo: decía que la meta "era" 8 cuando ya se había cumplido
+- fix: mensajes distinguen meta de 10 y éxito desde 8 | archivos: src/mensajes.js, src/pantallas/Principal.js | motivo: decían que la meta era 8 y la meta es 10

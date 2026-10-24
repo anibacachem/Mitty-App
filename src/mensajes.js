@@ -13,8 +13,12 @@ export function mensajeRitual(medida, semanaTerminada) {
     titulo = semanaTerminada ? '¡Semana completa!' : '¡Superaron la meta!';
     texto = `Anotaron ${anotados} gastos. Así se llega a fin de mes sin discutir.`;
   } else if (estado === 'logrado') {
-    titulo = semanaTerminada ? '¡Semana lograda!' : '¡Meta lograda!';
-    texto = `Llevan ${anotados} gastos anotados y la meta era ${exito}. Lo que sigue es ganancia.`;
+    // Entre 8 y 9: la semana ya es un éxito, aunque la meta completa es 10
+    const faltanMeta = meta - anotados;
+    titulo = '¡Semana lograda!';
+    texto = semanaTerminada
+      ? `Anotaron ${anotados} gastos: desde ${exito} la semana es un éxito. ${faltanMeta === 1 ? 'Solo faltó 1' : `Solo faltaron ${faltanMeta}`} para los ${meta}.`
+      : `Llevan ${anotados} gastos anotados y ya lograron el éxito de la semana (desde ${exito}). ${faltanMeta === 1 ? 'Falta 1' : `Faltan ${faltanMeta}`} para completar los ${meta}.`;
   } else if (anotados === 0) {
     titulo = 'Un nuevo comienzo';
     texto = 'Todavía no hay gastos anotados. Con el próximo que ocurra, ya están en marcha.';
@@ -25,7 +29,7 @@ export function mensajeRitual(medida, semanaTerminada) {
       : `Van ${anotados}. Con el próximo gasto que anoten, ya van avanzando.`;
   } else {
     titulo = 'Van por buen camino';
-    texto = `Llevan ${anotados} de ${meta}. ${faltan === 1 ? 'Falta 1 para' : `Faltan ${faltan} para`} la meta de ${exito}.`;
+    texto = `Llevan ${anotados} de ${meta}. ${faltan === 1 ? 'Falta 1 para' : `Faltan ${faltan} para`} lograr la semana (${exito}).`;
   }
 
   // Un empujón suave hacia el hábito real: anotar cuando ocurre el gasto
