@@ -19,6 +19,8 @@ Sabremos que el hábito cambió si, durante cuatro semanas:
 - La mayoría de los gastos se anotan el mismo día en que ocurren.
 - Saldar la cuenta del mes toma menos de 5 minutos y sin discusión.
 
+Prueba de velocidad: el autor anotó gastos de prueba, tanto a mano como con Mitty AI, y le tomó alrededor de 20 segundos cada uno, que es la meta que nos pusimos. Fue una prueba informal de una sola persona, no una medición con varias parejas. Los recordatorios del engranaje (10:00, 15:00 y 20:00) abren directo "Añadir gasto" al tocarlos.
+
 Limitación: la app no sabe cuántos gastos hubo en realidad. Un gasto que nadie anotó no se detecta, y la meta de 10 es fija, igual para una semana de muchos gastos que para una de pocos. El acceso es solo por el código de la pareja: quien lo tenga puede ver y eliminar sus gastos.
 
 ## Qué construimos

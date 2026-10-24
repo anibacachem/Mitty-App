@@ -71,3 +71,4 @@
 - style: Cierre de mes pasa a Saldar cuenta del mes y el resumen dice gastó | archivos: src/pantallas/CierreMes.js, src/pantallas/Principal.js, README.md | motivo: nombres más claros
 - docs: README, CLAUDE.md, AGENTS.md y esquema al día con la meta 8 de 10, Mitty AI y sin metas_dia | archivos: README.md, CLAUDE.md, AGENTS.md, supabase/esquema.sql, supabase/metas_dia.sql (eliminar) | motivo: repositorio coherente para la entrega
 - feat: recordatorios diarios fijos a las 10:00, 15:00 y 20:00 | archivos: src/notificaciones.js, src/pantallas/Principal.js, App.js, README.md | motivo: que el interruptor del engranaje programe los avisos de verdad (antes solo mandaba una prueba)
+- feat: tocar un recordatorio abre Añadir gasto; README declara la prueba de ~20 s por gasto | archivos: src/notificaciones.js, App.js, README.md | motivo: reducir el esfuerzo a un toque y documentar la medición informal
