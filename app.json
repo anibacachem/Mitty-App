@@ -23,7 +23,8 @@
         {
           "microphonePermission": "Mitty usa el micrófono para que anotes gastos hablando."
         }
-      ]
+      ],
+      "expo-font"
     ],
     "web": {
       "favicon": "./assets/favicon.png"
