@@ -153,23 +153,39 @@ export default function Principal({ pareja, aviso, onAnadir, onAsistente, onRitu
   const hayMesesAnteriores = movimientos.some((m) => m.fecha < limitesVistos.desde); // sin datos antes, no hay a dónde ir
   const delMes = movimientos.filter((m) => m.fecha >= limitesVistos.desde && m.fecha <= limitesVistos.hasta);
 
+  // El Detalle usa SOLO los movimientos del mes en curso (la tarjeta "Saldo" de arriba sigue usando todo)
+  const limitesActual = limitesDelMes(hoy);
+  const nombreMesActual = `${MESES[Number(hoy.slice(5, 7)) - 1]} ${hoy.slice(0, 4)}`;
+  const balanceMes = useMemo(
+    () => calcularBalance(movimientos.filter((m) => m.fecha >= limitesActual.desde && m.fecha <= limitesActual.hasta)),
+    [movimientos, hoy]
+  );
+
   // Filas del Detalle: yo primero. "pagos" solo aparece si ya hubo pagos entre ustedes.
+  // El gasto personal se saca de "Gasto total" y "Le correspondía" y va en su propia fila.
   const orden = [yo, otro];
-  const hayPagos = balance.pagosEnviados[0] + balance.pagosEnviados[1] > 0;
+  const hayPagos = balanceMes.pagosEnviados[0] + balanceMes.pagosEnviados[1] > 0;
+  const hayPersonal = balanceMes.personal[0] + balanceMes.personal[1] > 0;
   const filasDetalle = [
-    { texto: 'Gasto total', valores: orden.map((i) => pesos(balance.gastado[i])) },
-    { texto: 'Le correspondía', valores: orden.map((i) => pesos(balance.corresponde[i])) },
+    { texto: 'Gasto total', valores: orden.map((i) => pesos(balanceMes.gastado[i] - balanceMes.personal[i])) },
+    { texto: 'Le correspondía', valores: orden.map((i) => pesos(balanceMes.corresponde[i] - balanceMes.personal[i])) },
   ];
+  if (hayPersonal) {
+    filasDetalle.push({
+      texto: 'Gasto personal',
+      valores: orden.map((i) => (balanceMes.personal[i] >= 0.5 ? pesos(balanceMes.personal[i]) : '—')),
+    });
+  }
   if (hayPagos) {
     // Dos filas con solo el monto (o "—"), así todo queda alineado a la derecha:
     // "Pagó" = dinero que envió para saldar la deuda; "Recibió" = dinero que le llegó.
     filasDetalle.push({
       texto: 'Pagó',
-      valores: orden.map((i) => (balance.pagosEnviados[i] >= 0.5 ? pesos(balance.pagosEnviados[i]) : '—')),
+      valores: orden.map((i) => (balanceMes.pagosEnviados[i] >= 0.5 ? pesos(balanceMes.pagosEnviados[i]) : '—')),
     });
     filasDetalle.push({
       texto: 'Recibió',
-      valores: orden.map((i) => (balance.pagosRecibidos[i] >= 0.5 ? pesos(balance.pagosRecibidos[i]) : '—')),
+      valores: orden.map((i) => (balanceMes.pagosRecibidos[i] >= 0.5 ? pesos(balanceMes.pagosRecibidos[i]) : '—')),
     });
   }
 
@@ -302,7 +318,7 @@ export default function Principal({ pareja, aviso, onAnadir, onAsistente, onRitu
       {/* Tarjeta de detalle: los números que explican el saldo */}
       <View style={[styles.tarjeta, { marginTop: 20 }]}>
         <View style={styles.tarjetaArriba}>
-          <Text style={styles.etiqueta}>Detalle del saldo</Text>
+          <Text style={styles.etiqueta}>Detalle del saldo · {nombreMesActual}</Text>
           {/* Botón (i): muestra u oculta la explicación para ahorrar espacio */}
           <Pressable
             style={[styles.botonInfo, infoAbierta && styles.botonInfoActivo]}
@@ -335,16 +351,17 @@ export default function Principal({ pareja, aviso, onAnadir, onAsistente, onRitu
             <Text
               key={i}
               style={[styles.detalleCol, { fontWeight: '700' },
-                balance.neto[i] <= -0.5 ? styles.rojo : balance.neto[i] >= 0.5 ? styles.verde : null]}
+                balanceMes.neto[i] <= -0.5 ? styles.rojo : balanceMes.neto[i] >= 0.5 ? styles.verde : null]}
             >
-              {resultadoEnPalabras(balance.neto[i])}
+              {resultadoEnPalabras(balanceMes.neto[i])}
             </Text>
           ))}
         </View>
         {infoAbierta && <Text style={styles.nota}>
-          Gasto total = todo lo que anotó como gasto suyo, incluidas las invitaciones. Le correspondía = su parte
-          (en una invitación, todo es de quien invita). Pagó / Recibió = dinero entregado entre ustedes para
-          saldar la deuda. Resultado = gasto total − lo que le correspondía ± pagos.
+          Solo cuenta los movimientos de este mes. Gasto total = todo lo que anotó como gasto compartido suyo,
+          incluidas las invitaciones. Le correspondía = su parte (en una invitación, todo es de quien invita).
+          Gasto personal = lo que gastó solo para sí: no genera deuda. Pagó / Recibió = dinero entregado entre
+          ustedes para saldar la deuda. Resultado = gasto total − lo que le correspondía ± pagos.
         </Text>}
       </View>
 

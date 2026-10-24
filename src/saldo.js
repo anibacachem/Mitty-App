@@ -43,11 +43,13 @@ export function calcularBalance(movimientos) {
   const corresponde = [0, 0];
   const pagosEnviados = [0, 0];
   const pagosRecibidos = [0, 0];
+  const personal = [0, 0]; // gastos personales de cada uno (ya están dentro de gastado y corresponde, a la par)
 
   for (const m of movimientos) {
     const monto = Number(m.monto);
     const pagador = m.pagador;
     const otro = pagador === 0 ? 1 : 0;
+    if (m.tipo === 'personal') personal[pagador] += monto;
 
     if (m.tipo === 'pago') {
       pagosEnviados[pagador] += monto;
@@ -63,7 +65,7 @@ export function calcularBalance(movimientos) {
   const neto = [0, 1].map(
     (i) => gastado[i] - corresponde[i] + pagosEnviados[i] - pagosRecibidos[i]
   );
-  return { gastado, corresponde, pagosEnviados, pagosRecibidos, neto };
+  return { gastado, corresponde, pagosEnviados, pagosRecibidos, personal, neto };
 }
 
 // Texto del reparto de un gasto, para mostrar al tocar una fila.

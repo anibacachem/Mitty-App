@@ -52,3 +52,4 @@
 - style: logo de Mitty (carga y esquina) y paleta naranja-rosa | archivos: assets/*.png, src/colores.js, App.js, pantallas y componentes | motivo: identidad visual igual al logo
 - fix: logo limpio, opaco y con esquinas suaves | archivos: assets/logo.png, icon.png, splash-icon.png, favicon.png, app.json | motivo: el logo se veía con bordes/transparencias raras al cargar
 - feat: gasto personal en Añadir gasto y en Mitty AI | archivos: src/pantallas/AnadirGasto.js, AsistenteIA.js, src/formato.js, supabase/functions/interpretar-gasto/index.ts | motivo: anotar gastos de una sola persona (sin deuda) a mano o por texto/voz
+- feat: Detalle del saldo del mes en curso, con fila de gasto personal | archivos: src/saldo.js, src/pantallas/Principal.js | motivo: mostrar el mes en el título y separar lo personal
