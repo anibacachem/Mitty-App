@@ -12,6 +12,7 @@ const TIPOS = [
   { valor: 'mitad', titulo: 'Mitad', detalle: '50% y 50%. La otra persona debe la mitad.' },
   { valor: 'fraccion', titulo: 'Fracción', detalle: 'Cada uno una parte distinta.' },
   { valor: 'invita', titulo: 'Invitación', detalle: 'Uno invitó. No se comparte ni genera deuda.' },
+  { valor: 'personal', titulo: 'Gasto personal', detalle: 'Es de una sola persona. No se comparte ni genera deuda.' },
 ];
 
 // Resumen fijo que aparece arriba en cada paso: "$42.000 · super · Mitad".
@@ -178,7 +179,7 @@ export default function AnadirGasto({ pareja, onCerrar, onGuardado, registrarAtr
   if (cuando === 'ayer') extra.push('Ayer');
   if (cuando === 'otro' && fecha) extra.push(`${fecha.slice(8, 10)}/${fecha.slice(5, 7)}`);
   if (tipo) extra.push(TIPOS.find((t) => t.valor === tipo).titulo);
-  if (pagador !== null) extra.push(`Pagó ${nombres[pagador]}`);
+  if (pagador !== null) extra.push(tipo === 'personal' ? `De ${nombres[pagador]}` : `Pagó ${nombres[pagador]}`);
 
   // Mientras escribes, mostramos el monto con puntos de miles (42.000)
   function cambiarMonto(texto) {
@@ -407,7 +408,7 @@ export default function AnadirGasto({ pareja, onCerrar, onGuardado, registrarAtr
       <View style={styles.contenedor}>
         {resumen}
         <Text style={styles.pregunta}>
-          {tipo === 'invita' ? '¿Quién invitó y pagó?' : '¿Quién pagó?'}
+          {tipo === 'invita' ? '¿Quién invitó y pagó?' : tipo === 'personal' ? '¿De quién es el gasto?' : '¿Quién pagó?'}
         </Text>
         <Pressable style={styles.botonGrande} onPress={() => elegirPagador(pareja.yo)}>
           <Text style={styles.textoBoton}>{miNombre} (tú)</Text>

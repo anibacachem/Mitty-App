@@ -139,7 +139,8 @@ export default function AsistenteIA({ pareja, onVolver }) {
   function describir(g) {
     const hoy = hoyISO();
     const cuando = g.fecha === hoy ? 'hoy' : g.fecha === hace(1) ? 'ayer' : fechaConDia(g.fecha);
-    const linea = [`$${formatearMonto(g.monto)}`, g.descripcion, etiquetaTipo(g.tipo), `pagó ${nombres[g.pagador]}`, cuando];
+    const linea = [`$${formatearMonto(g.monto)}`, g.descripcion, etiquetaTipo(g.tipo),
+      g.tipo === 'personal' ? `de ${nombres[g.pagador]}` : `pagó ${nombres[g.pagador]}`, cuando];
     return `Entendí: ${linea.join(' · ')}\nReparto: ${textoReparto(g, nombres)}`;
   }
 

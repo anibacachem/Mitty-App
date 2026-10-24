@@ -55,7 +55,7 @@ export function fechaDeDiaMes(dia, mes) {
 // Nombre legible de cada tipo de movimiento, para mostrarlo en la lista.
 const ETIQUETAS = {
   mitad: 'Mitad', fraccion: 'Fracción', invita: 'Invitación',
-  por_otro: 'Era del otro', personal: 'Personal', pago: 'Pago',
+  por_otro: 'Era del otro', personal: 'Gasto personal', pago: 'Pago',
 };
 export function etiquetaTipo(tipo) {
   return ETIQUETAS[tipo] || tipo;

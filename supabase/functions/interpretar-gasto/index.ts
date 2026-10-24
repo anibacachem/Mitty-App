@@ -8,7 +8,7 @@
 // Salida: { ok: true, gasto: {...}, supuestos } o { ok: false, mensaje }
 
 const MODELO = Deno.env.get('GEMINI_MODEL') ?? 'gemini-3.1-flash-lite';
-const TIPOS = ['mitad', 'fraccion', 'invita', 'por_otro'];
+const TIPOS = ['mitad', 'fraccion', 'invita', 'por_otro', 'personal'];
 const MAX_TEXTO = 300; // caracteres
 const MAX_AUDIO = 2_000_000; // caracteres de base64 (~1,5 MB: sobra para un audio de 20-30 segundos)
 
@@ -43,6 +43,9 @@ Tipos de gasto:
 - invita: alguien invitó o regaló; no se comparte ni genera deuda.
 - por_otro: el gasto era todo de la pareja de quien pagó ("pagué por ella", "es todo de ${otroNombre}").
 
+- personal: gasto de una sola persona, que no se comparte ni genera deuda ("gasto personal", "es mío", "solo mío", "es personal", "para mí").
+  Aquí pagador = de quién es el gasto: "yo" si es de ${yoNombre} (por defecto) y "otro" si es de ${otroNombre} ("es personal de ${otroNombre}").
+
 Reglas:
 - pagador = "yo" si pagó ${yoNombre} ("pagué", "yo", "puse yo") y "otro" si pagó ${otroNombre}.
 - Si no dicen quién pagó, usa "yo" y escríbelo en supuestos.
@@ -62,7 +65,7 @@ export function armarGasto(p: any, yo: number, hoy: string) {
   }
   const monto = Math.round(Number(p.monto));
   if (!(monto > 0)) return { ok: false, mensaje: 'No pude ver cuánto fue el gasto. ¿Me dices el monto?' };
-  if (!TIPOS.includes(p.tipo)) return { ok: false, mensaje: 'No entendí cómo se reparte. ¿A medias, en porcentajes o invitación?' };
+  if (!TIPOS.includes(p.tipo)) return { ok: false, mensaje: 'No entendí cómo se reparte. ¿A medias, en porcentajes, invitación o gasto personal?' };
 
   const pagador = p.pagador === 'otro' ? (yo === 0 ? 1 : 0) : yo; // 'yo' -> el que habla
   let parte0: number | null = null;
