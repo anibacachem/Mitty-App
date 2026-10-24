@@ -269,7 +269,7 @@ export default function Principal({ pareja, aviso, onAnadir, onAsistente, onRitu
       </View>
 
       {/* Esta semana: gastos anotados contra la meta (8 de 10), una barra de 10 tramos. Al tocarla abre el Ritual */}
-      <Pressable style={styles.tarjetaHoy} onPress={onRitual}>
+      <Pressable style={[styles.tarjetaHoy, esDomingo && styles.tarjetaHoyDomingo]} onPress={onRitual}>
         <View style={styles.hoyFila}>
           <Text style={styles.hoyTitulo}>Esta semana</Text>
           <Text style={[styles.hoyConteo, medSemana.estado === 'logrado' ? styles.verde : styles.ambar]}>
@@ -288,23 +288,14 @@ export default function Principal({ pareja, aviso, onAnadir, onAsistente, onRitu
             : `Faltan ${medSemana.faltan} para la meta de ${EXITO_SEMANA}`}
           {` · Hoy: ${anotadosHoy} ${anotadosHoy === 1 ? 'anotado' : 'anotados'}`}
         </Text>
+        <Text style={styles.hoyVer}>{esDomingo ? 'Hoy es domingo: toca para revisar tu semana' : 'Toca para ver tu semana y el mes'}</Text>
       </Pressable>
 
-      {/* Ritual de domingo y Cierre de mes, lado a lado para ahorrar espacio.
-          Siempre disponibles; el día que toca, el botón se resalta y dice "Hoy toca". */}
-      <View style={styles.filaRitual}>
-        <Pressable
-          style={[styles.botonRitual, { marginRight: 10 }, esDomingo && styles.botonRitualHoy]}
-          onPress={onRitual}
-        >
-          {esDomingo && <Text style={styles.textoHoyToca}>Hoy toca</Text>}
-          <Text style={[styles.textoRitual, esDomingo && styles.textoRitualHoy]}>Ritual de domingo</Text>
-        </Pressable>
-        <Pressable style={[styles.botonRitual, esFinDeMes && styles.botonRitualHoy]} onPress={onCierre}>
-          {esFinDeMes && <Text style={styles.textoHoyToca}>Hoy toca</Text>}
-          <Text style={[styles.textoRitual, esFinDeMes && styles.textoRitualHoy]}>Cierre de mes</Text>
-        </Pressable>
-      </View>
+      {/* Cierre de mes. Siempre disponible; el último día del mes se resalta y dice "Hoy toca". */}
+      <Pressable style={[styles.botonCierre, esFinDeMes && styles.botonRitualHoy]} onPress={onCierre}>
+        {esFinDeMes && <Text style={styles.textoHoyToca}>Hoy toca</Text>}
+        <Text style={[styles.textoRitual, esFinDeMes && styles.textoRitualHoy]}>Cierre de mes</Text>
+      </Pressable>
 
       {/* Tarjeta de detalle: los números que explican el saldo */}
       <View style={[styles.tarjeta, { marginTop: 20 }]}>
@@ -547,8 +538,9 @@ const styles = StyleSheet.create({
   hoyConteo: { fontSize: 17, fontWeight: '700', marginLeft: 'auto' },
   hoySub: { fontSize: 12, color: '#888', marginTop: 8 },
   ambar: { color: '#D97706' }, // ("verde" ya existe más abajo, en el detalle del saldo)
-  filaRitual: { flexDirection: 'row', marginTop: 12 },
-  botonRitual: { flex: 1, borderWidth: 2, borderColor: ACENTO, paddingVertical: 14, borderRadius: 16,
+  tarjetaHoyDomingo: { borderColor: ACENTO, borderWidth: 2 }, // el domingo, la tarjeta de la semana se resalta
+  hoyVer: { fontSize: 12, color: ACENTO, fontWeight: '600', marginTop: 4 },
+  botonCierre: { borderWidth: 2, borderColor: ACENTO, paddingVertical: 14, borderRadius: 16, marginTop: 12,
     backgroundColor: '#fff', alignItems: 'center', justifyContent: 'center' },
   botonRitualHoy: { backgroundColor: '#FFD9E3' },
   textoHoyToca: { color: ACENTO, fontSize: 11, fontWeight: '800', textTransform: 'uppercase', letterSpacing: 0.5 },

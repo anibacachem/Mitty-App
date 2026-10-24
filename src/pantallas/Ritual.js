@@ -1,9 +1,7 @@
 import { useEffect, useState } from 'react';
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { cargarTodo } from '../datos';
-import BotonInfo from '../componentes/BotonInfo';
-import { fechaDeDiaMes, hoyISO, pesos } from '../formato';
-import { calcularBalance, describirSaldo } from '../saldo';
+import { fechaDeDiaMes, hoyISO } from '../formato';
 import {
   EXITO_SEMANA, META_SEMANA, diaDeSemana, diasEntre, medirMes, medirSemana, semanaCompleta, sumarDias,
 } from '../habito';
@@ -41,12 +39,11 @@ function Medidor({ medida }) {
   );
 }
 
-// Ritual de domingo: el mensaje, cómo va la semana (meta 8 de 10) y el mes acumulado, y un resumen corto.
+// Pantalla "Esta semana" (antes Ritual de domingo): el mensaje, cómo va la semana (meta 8 de 10) y el mes acumulado.
 // pareja: { codigo, nombre0, nombre1, yo }. onVolver: regresar a la pantalla principal.
 export default function Ritual({ pareja, onVolver }) {
   const [movimientos, setMovimientos] = useState(null); // null = todavía cargando
   const [error, setError] = useState('');
-  const [infoResumen, setInfoResumen] = useState(false); // explicación del Resumen (botón i)
   const [semanaElegida, setSemanaElegida] = useState(null); // semana que muestra TODA la pantalla (null = la actual)
   const [verSelector, setVerSelector] = useState(false); // caja para escribir una fecha
   const [diaTxt, setDiaTxt] = useState('');
@@ -71,24 +68,20 @@ export default function Ritual({ pareja, onVolver }) {
     setVerSelector(false);
   }
 
-  // Pedimos todos los movimientos (y los días declarados, que Principal aún usa): la semana sale de filtrarlos y el saldo usa todos
+  // Pedimos todos los movimientos: la semana y el mes salen de filtrarlos por su fecha
   async function cargar() {
     setError('');
     try {
       const datos = await cargarTodo(pareja.codigo);
       setMovimientos(datos.movimientos);
     } catch (e) {
-      setError('No se pudo cargar el resumen: ' + String(e.message).slice(0, 150));
+      setError('No se pudo cargar la semana: ' + String(e.message).slice(0, 150));
     }
   }
 
   useEffect(() => {
     cargar();
   }, []);
-
-  const nombres = [pareja.nombre0, pareja.nombre1];
-  const yo = pareja.yo;
-  const orden = [yo, yo === 0 ? 1 : 0]; // yo primero
 
   // ---- Estados de carga y error ----
   if (movimientos === null) {
@@ -114,7 +107,7 @@ export default function Ritual({ pareja, onVolver }) {
   // ---- Semana completa (lunes a domingo, aunque cruce de mes) ----
   const hoy = hoyISO();
   const semanaActual = semanaCompleta(hoy);
-  // TODA la pantalla (mensaje, medidor, tira, mes y resumen) sigue a la semana elegida con las flechas
+  // TODA la pantalla (mensaje, medidor, tira y mes) sigue a la semana elegida con las flechas
   const semanaVista = semanaElegida ?? semanaActual;
   const esSemanaActual = semanaVista.desde === semanaActual.desde;
   const medSemana = medirSemana(movimientos, semanaVista.desde, semanaVista.hasta);
@@ -131,17 +124,9 @@ export default function Ritual({ pareja, onVolver }) {
   const mensaje = mensajeRitual(medSemana, semanaTerminada);
   const fondoMensaje = medSemana.estado === 'logrado' ? '#E7F5EC' : '#FDF6E8';
 
-  // ---- Resumen de la semana que se mira ----
-  const semana = movimientos.filter((m) => m.fecha >= semanaVista.desde && m.fecha <= semanaVista.hasta);
-  const gastosSemana = semana.filter((m) => m.tipo !== 'pago'); // un pago entre ustedes no es un gasto
-  const total = gastosSemana.reduce((suma, m) => suma + Number(m.monto), 0);
-  const pagoPorPersona = calcularBalance(semana).gastado; // cuánto gastó (puso de su bolsillo) cada uno esta semana
-  const saldo = describirSaldo(calcularBalance(movimientos).neto, yo, nombres); // saldo de siempre, no solo de la semana
-  const colorSaldo = { debo: '#B91C1C', medeben: ACENTO, amano: '#555' }[saldo.clase];
-
   return (
     <ScrollView style={styles.pantalla} contentContainerStyle={{ padding: 24, paddingBottom: 48 }}>
-      <Text style={styles.titulo}>Ritual de domingo</Text>
+      <Text style={styles.titulo}>Esta semana</Text>
 
       {/* Navegación de semana (manda sobre toda la pantalla): flecha atrás = semana anterior,
           flecha adelante = semana siguiente, sin pasar de la actual */}
@@ -239,45 +224,6 @@ export default function Ritual({ pareja, onVolver }) {
         </Text>
       </View>
 
-      {/* 4. Resumen corto */}
-      <View style={styles.tarjeta}>
-        <View style={styles.tarjetaArriba}>
-          <Text style={styles.etiqueta}>Resumen de la semana</Text>
-          <BotonInfo activo={infoResumen} onPress={() => setInfoResumen(!infoResumen)} />
-        </View>
-        {gastosSemana.length === 0 ? (
-          <Text style={styles.vacio}>{esSemanaActual ? 'Todavía no hay gastos esta semana.' : 'No hay gastos en la semana elegida.'}</Text>
-        ) : (
-          <>
-            <View style={styles.filaResumen}>
-              <Text style={styles.resumenEtiqueta}>
-                Gasto total ({gastosSemana.length} {gastosSemana.length === 1 ? 'gasto' : 'gastos'})
-              </Text>
-              <Text style={styles.resumenTotal}>{pesos(total)}</Text>
-            </View>
-            {orden.map((i) => (
-              <View key={i} style={styles.filaResumen}>
-                <Text style={styles.resumenEtiqueta}>{i === yo ? `${nombres[i]} (tú) gastó` : `${nombres[i]} gastó`}</Text>
-                <Text style={styles.resumenValor}>{pesos(pagoPorPersona[i])}</Text>
-              </View>
-            ))}
-          </>
-        )}
-        <View style={styles.separador} />
-        <Text style={styles.resumenEtiqueta}>Saldo actual</Text>
-        <Text style={[styles.saldo, { color: colorSaldo }]}>{saldo.texto}</Text>
-        {/* Explicación al pie de la caja, con el mismo formato (tamaño, color, "X = ...") que el Detalle del saldo */}
-        {infoResumen && (
-          <Text style={styles.nota}>
-            Gasto total = gastos anotados con fecha de la semana elegida (lunes a domingo completa), incluidas
-            invitaciones y personales; los pagos entre ustedes no cuentan. Gastó = lo que cada uno puso de su
-            bolsillo esa semana. Las flechas de arriba cambian la semana de toda la pantalla y "Elegir fecha" salta a
-            la semana de ese día (del año en curso). Saldo actual = todo lo anotado y aún no saldado, no solo esa
-            semana. El medidor cuenta todos los gastos anotados.
-          </Text>
-        )}
-      </View>
-
       <Pressable style={styles.boton} onPress={onVolver}>
         <Text style={styles.textoBoton}>Volver</Text>
       </Pressable>
@@ -321,7 +267,6 @@ const styles = StyleSheet.create({
   diaTexto: { fontSize: 12, fontWeight: '700', color: '#333' },
   nota: { fontSize: 12, color: '#888', marginTop: 10 },
   // Resumen
-  tarjetaArriba: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   navSemana: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
     backgroundColor: '#FFF3EF', borderRadius: 12, paddingVertical: 6, paddingHorizontal: 6, marginBottom: 6 },
   flecha: { width: 40, height: 36, alignItems: 'center', justifyContent: 'center' },
@@ -337,14 +282,6 @@ const styles = StyleSheet.create({
   selectorIr: { backgroundColor: ACENTO, borderRadius: 8, paddingVertical: 8, paddingHorizontal: 18, marginLeft: 12 },
   selectorIrTexto: { color: '#fff', fontWeight: '700', fontSize: 15 },
   errorFecha: { color: '#B91C1C', fontSize: 13, marginBottom: 8 },
-  filaResumen: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
-    paddingVertical: 5 },
-  resumenEtiqueta: { fontSize: 15, color: '#555', flexShrink: 1, paddingRight: 8 },
-  resumenValor: { fontSize: 16, fontWeight: '700', color: '#222' },
-  resumenTotal: { fontSize: 20, fontWeight: '700', color: '#222' },
-  separador: { height: 1, backgroundColor: '#F0E4E0', marginVertical: 12 },
-  saldo: { fontSize: 22, fontWeight: '700', marginTop: 4 },
-  vacio: { fontSize: 15, color: '#777' },
   boton: { backgroundColor: ACENTO, paddingVertical: 18, borderRadius: 16, marginTop: 6 },
   textoBoton: { color: '#fff', fontSize: 18, fontWeight: '600', textAlign: 'center' },
   enlace: { color: ACENTO, fontSize: 16, textAlign: 'center', marginTop: 18 },
