@@ -21,7 +21,8 @@ const ESQUEMA = {
     monto: { type: 'INTEGER', nullable: true },
     descripcion: { type: 'STRING', nullable: true },
     tipo: { type: 'STRING', enum: TIPOS, nullable: true },
-    pagador: { type: 'STRING', enum: ['yo', 'otro'], nullable: true },
+    pagador: { type: 'STRING', enum: ['yo', 'otro'], nullable: true }, // quién puso la plata
+    dueno: { type: 'STRING', enum: ['yo', 'otro'], nullable: true }, // solo invita/personal: quién invitó o de quién es
     porcentaje_yo: { type: 'INTEGER', nullable: true }, // solo en fracción
     monto_yo: { type: 'INTEGER', nullable: true }, // solo en fracción
     fecha: { type: 'STRING', nullable: true }, // AAAA-MM-DD
@@ -40,11 +41,12 @@ Moneda: pesos chilenos, sin decimales. "42 mil" = 42000, "5 lucas" = 5000, "1,5 
 Tipos de gasto:
 - mitad: se reparte 50 y 50 ("a medias", "mitad y mitad").
 - fraccion: reparto distinto. Indica porcentaje_yo O monto_yo = lo que le toca a ${yoNombre}.
-- invita: alguien invitó o regaló; no se comparte ni genera deuda.
+- invita: alguien invitó o regaló; el gasto es de quien invitó. Indica dueno = quien invitó.
 - por_otro: el gasto era todo de la pareja de quien pagó ("pagué por ella", "es todo de ${otroNombre}").
 
-- personal: gasto de una sola persona, que no se comparte ni genera deuda ("gasto personal", "es mío", "solo mío", "es personal", "para mí").
-  Aquí pagador = de quién es el gasto: "yo" si es de ${yoNombre} (por defecto) y "otro" si es de ${otroNombre} ("es personal de ${otroNombre}").
+- personal: gasto de una sola persona ("gasto personal", "es mío", "solo mío", "es personal", "para mí"). Indica dueno = de quién es.
+En invita y personal, dueno y pagador pueden ser personas distintas: "invité yo pero pagó ella" = dueno "yo", pagador "otro"; "compré una polera para mí y pagó ${otroNombre}" = dueno "yo", pagador "otro"; "es un gasto personal de ${otroNombre}, pagué yo" = dueno "otro", pagador "yo".
+  dueno = "yo" si es de ${yoNombre} y "otro" si es de ${otroNombre}. Si solo dicen uno de los dos (quién pagó o de quién es), el otro es la misma persona; escríbelo en supuestos.
 
 Reglas:
 - pagador = "yo" si pagó ${yoNombre} ("pagué", "yo", "puse yo") y "otro" si pagó ${otroNombre}.
@@ -67,7 +69,18 @@ export function armarGasto(p: any, yo: number, hoy: string) {
   if (!(monto > 0)) return { ok: false, mensaje: 'No pude ver cuánto fue el gasto. ¿Me dices el monto?' };
   if (!TIPOS.includes(p.tipo)) return { ok: false, mensaje: 'No entendí cómo se reparte. ¿A medias, en porcentajes, invitación o gasto personal?' };
 
-  const pagador = p.pagador === 'otro' ? (yo === 0 ? 1 : 0) : yo; // 'yo' -> el que habla
+  const otroIdx = yo === 0 ? 1 : 0;
+  const aIndice = (v: unknown) => (v === 'otro' ? otroIdx : v === 'yo' ? yo : null); // 'yo' -> el que habla
+  let pagador = aIndice(p.pagador) ?? yo;
+  // Invitación y personal: dueño (quién invitó / de quién es) puede ser distinto de quien pagó.
+  // Si falta uno de los dos, es la misma persona. Las demás formas no usan "dueno".
+  let dueno: number | null = null;
+  if (p.tipo === 'invita' || p.tipo === 'personal') {
+    const d = aIndice(p.dueno);
+    const q = aIndice(p.pagador);
+    dueno = d ?? q ?? yo;
+    pagador = q ?? dueno;
+  }
   let parte0: number | null = null;
   let parte1: number | null = null;
 
@@ -91,7 +104,7 @@ export function armarGasto(p: any, yo: number, hoy: string) {
 
   return {
     ok: true,
-    gasto: { monto, descripcion: descripcion.slice(0, 60), tipo: p.tipo, pagador, fecha, parte0, parte1 },
+    gasto: { monto, descripcion: descripcion.slice(0, 60), tipo: p.tipo, pagador, dueno, fecha, parte0, parte1 },
     supuestos: p.supuestos || '',
   };
 }
