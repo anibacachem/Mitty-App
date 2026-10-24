@@ -12,13 +12,14 @@ El problema no es calcular quién debe a quién. Es el hábito de anotar cada ga
 
 La cuenta es fácil; anotar a tiempo no lo fue. Por eso Mitty reduce el esfuerzo a unos pocos toques (monto, cómo se reparte y quién pagó) y da una recompensa inmediata: la otra persona lo ve y el saldo se actualiza.
 
-El hábito se mide con un conteo simple: la meta es **3 gastos compartidos por día**. Si un día hubo menos, la pareja lo declara (ninguno, solo 1 o solo 2) y la meta de ese día baja, así un día sin gastos no cuenta en contra. Se mide por semana (de lunes a domingo, recortada al mes) y por mes, y el conteo vuelve a cero cada mes.
+El hábito se mide con un conteo simple: la meta es **10 gastos anotados por semana** (de lunes a domingo) y desde **8** la semana es un éxito. Cuenta todo gasto anotado (compartido, personal o invitación). Además se muestra aparte cuántos se anotaron **el mismo día en que ocurrieron**, que es el hábito real, sin restar puntos a quien anota tarde. Hay un acumulado del mes, con cuántas semanas llegaron al éxito, que vuelve a cero cada mes.
 
 Sabremos que el hábito cambió si, durante cuatro semanas:
-- Al menos 8 de cada 10 gastos esperados quedan anotados (la semana o el mes se marca como "logrado" desde el 80%).
-- El cierre de mes toma menos de 5 minutos y sin discusión.
+- Al menos 3 de cada 4 semanas llegan a 8 gastos anotados o más.
+- La mayoría de los gastos se anotan el mismo día en que ocurren.
+- Saldar la cuenta del mes toma menos de 5 minutos y sin discusión.
 
-Limitación: el indicador mide cuánto se anota, no si se anota el mismo día, y depende de que la pareja declare con honestidad los días con menos gastos. No detecta un gasto que nadie anotó ni declaró.
+Limitación: la app no sabe cuántos gastos hubo en realidad. Un gasto que nadie anotó no se detecta, y la meta de 10 es fija, igual para una semana de muchos gastos que para una de pocos. El acceso es solo por el código de la pareja: quien lo tenga puede ver y eliminar sus gastos.
 
 ## Qué construimos
 
@@ -26,26 +27,37 @@ Limitación: el indicador mide cuánto se anota, no si se anota el mismo día, y
 2. Anotar un gasto en pocos toques: monto, cómo se reparte (mitad, fracción, invitación o gasto personal), quién pagó y la fecha (hoy, ayer u otro día). En invitación y gasto personal se pregunta además quién invitó o de quién es el gasto: si pagó la otra persona, el dueño le debe todo.
 3. Lista y saldo compartidos, sincronizados entre los dos teléfonos cada 5 segundos. El saldo dice "Al día", "Le debes $X a Y" o "Y te debe $X". El detalle es del mes en curso y va en dos grupos, "Gastos compartidos" y "Gastos personales e invitaciones", con el gasto total y lo que le correspondía a cada uno; abajo, los pagos entre ustedes y el resultado en palabras ("Debe" / "Le deben"); el botón (i) explica cada concepto.
    Los gastos del mes van en una caja con scroll propio (unos 5 visibles), con el total (N), filtros (Todos, Compartidos, Personales e invitaciones, Pagos) y orden por fecha del gasto, con un botón para invertirlo. En la lista, "Gastó" es un gasto anotado y "Pagó" es un pago entre ustedes. Para corregir un error, el botón "Seleccionar" permite marcar uno o varios gastos y eliminarlos con confirmación; los pagos del cierre no se pueden eliminar.
-4. Esta semana (el ritual de domingo): la tarjeta "Esta semana" de la pantalla principal muestra los gastos anotados contra la meta (10 por semana, éxito desde 8) y al tocarla abre la pantalla con un mensaje amable, el medidor, lo anotado cada día (lunes a domingo) y el acumulado del mes con las semanas logradas. Cuenta todo gasto anotado (compartido, personal o invitación) y muestra aparte cuántos se anotaron el mismo día en que ocurrieron, que es el hábito que busca la app. Las flechas permiten ver semanas anteriores.
+4. Esta semana (el ritual de domingo): la tarjeta "Esta semana" de la pantalla principal muestra los gastos anotados contra la meta (10 por semana, éxito desde 8) y al tocarla abre la pantalla con un mensaje amable, el medidor, lo anotado cada día y el acumulado del mes con las semanas logradas. Las flechas permiten ver semanas anteriores.
 5. Saldar cuenta del mes (cierre de mes): resumen del mes y un botón para registrar el pago del que debe, con confirmación, que deja el saldo en cero. El pago se registra siempre a nombre de quien debe, lo toque cualquiera de los dos.
+6. Mitty AI: un botón para anotar un gasto escribiendo o hablando ("pagué 25 mil en el super, a medias"). Una función de Supabase (`interpretar-gasto`) consulta a Gemini, que entiende la frase; la app muestra lo que entendió y el gasto solo se guarda si se confirma. La cuenta (que las partes sumen el total) la hace el código, no la IA, y la llave de Gemini vive como secreto en Supabase, nunca en la app ni en el repositorio.
 
 ## Qué dejamos fuera, y por qué
 
 - **Conexión con bancos:** no hace falta para probar el hábito y exige datos sensibles.
 - **Exportar a Excel o PDF:** pospuesto; el prototipo se enfoca en el hábito de anotar.
-- **Edición de gastos:** no es necesaria para probar el hábito.
+- **Edición de gastos:** no es necesaria para probar el hábito. Solo se puede eliminar uno o varios gastos para corregir un error; los pagos del cierre no se eliminan.
 - **Inicio de sesión:** el acceso es por código de pareja, suficiente para un prototipo. Con datos reales haría falta iniciar sesión.
 - **Varias parejas por cuenta:** no cambia la hipótesis que queremos probar.
-- **Medir la puntualidad:** decidimos medir cuánto se anota y no si se anota el mismo día, para no castigar los días con pocos gastos. La base guarda cuándo se anotó cada gasto, por si se quiere medir más adelante.
+- **Penalizar anotar tarde:** se muestra cuántos gastos se anotaron en el momento, pero no resta puntos, para no castigar a quien anota después.
+- **Recordatorios diarios automáticos:** el interruptor del engranaje pide permiso y envía un aviso de prueba. Los avisos programados (por ejemplo a las 10:00, 15:00 y 20:00), un widget y los accesos rápidos quedaron para una siguiente versión.
+- **Mejoras de Mitty AI:** corregir un campo sin repetir la frase, y más idiomas o acentos en la voz.
 
 ## Cómo probarlo
 
 Necesitas Expo Go con soporte del SDK 58 y un proyecto propio de Supabase.
 
-1. Crea un proyecto en Supabase y, en el SQL Editor, ejecuta `supabase/esquema.sql` y después `supabase/metas_dia.sql`. (Si tu base ya existía de antes, ejecuta también `supabase/dueno.sql`.)
+1. Crea un proyecto en Supabase y, en el SQL Editor, ejecuta `supabase/esquema.sql`. (Si tu base ya existía de antes, ejecuta también `supabase/dueno.sql`.)
 2. Clona el repo y ejecuta `npm install`.
 3. Copia `.env.example` a `.env` y completa las dos variables con la Project URL (sin `/rest/v1` al final) y la llave *publishable* de tu proyecto. Nunca uses la llave secret.
 4. Ejecuta `npx expo start` y escanea el QR con Expo Go.
+
+Para Mitty AI (opcional; sin esto la app funciona igual, solo no anota por texto o voz):
+
+1. En Supabase, ve a Edge Functions y crea una función llamada `interpretar-gasto`; pega el contenido de `supabase/functions/interpretar-gasto/index.ts` y desactiva *Verify JWT*.
+2. En los secretos de las funciones agrega `GEMINI_API_KEY` con una llave de Gemini. Opcionalmente `GEMINI_MODEL` para cambiar el modelo (por defecto `gemini-3.1-flash-lite`).
+3. Despliega la función. Cada vez que cambies `index.ts` hay que volver a desplegarla.
+
+La capa gratuita de Gemini puede usar el contenido para mejorar productos de Google, por eso en las pruebas se usan solo datos inventados.
 
 Demo con una pareja ficticia: [código de la pareja de demo]. Versión web: [link, si existe].
 

@@ -1,4 +1,4 @@
--- Mitty App: tablas base. Pégalo en Supabase (SQL Editor -> New query -> Run) ANTES de supabase/metas_dia.sql.
+-- Mitty App: tablas base. Pégalo en Supabase (SQL Editor -> New query -> Run). Es lo único que necesita una base nueva.
 -- Es seguro correrlo más de una vez. Solo se usan datos inventados.
 
 -- Una fila por pareja: su código y los dos nombres (nombre0 = persona 0, nombre1 = persona 1).
