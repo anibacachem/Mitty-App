@@ -359,10 +359,10 @@ export default function Principal({ pareja, aviso, onAnadir, onAsistente, onRitu
         <Text style={styles.hoyVer}>{esDomingo ? 'Hoy es domingo: toca para revisar tu semana' : 'Toca para ver tu semana y el mes'}</Text>
       </Pressable>
 
-      {/* Cierre de mes. Siempre disponible; el último día del mes se resalta y dice "Hoy toca". */}
+      {/* Saldar cuenta del mes. Siempre disponible; el último día del mes se resalta y dice "Hoy toca". */}
       <Pressable style={[styles.botonCierre, esFinDeMes && styles.botonRitualHoy]} onPress={onCierre}>
         {esFinDeMes && <Text style={styles.textoHoyToca}>Hoy toca</Text>}
-        <Text style={[styles.textoRitual, esFinDeMes && styles.textoRitualHoy]}>Cierre de mes</Text>
+        <Text style={[styles.textoRitual, esFinDeMes && styles.textoRitualHoy]}>Saldar cuenta del mes</Text>
       </Pressable>
 
       {/* Tarjeta de detalle: los números que explican el saldo */}

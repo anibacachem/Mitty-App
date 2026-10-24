@@ -68,3 +68,4 @@
 - style: títulos de los grupos del Detalle más oscuros | archivos: src/pantallas/Principal.js | motivo: mejor lectura, mismo color que Resultado
 - style: saludo con letra Nunito redondeada | archivos: App.js, src/pantallas/Principal.js, package.json | motivo: saludo menos delgado y tosco (requiere npx expo install expo-font @expo-google-fonts/nunito)
 - style: subtítulo del saludo en Nunito y menos espacio hasta la primera caja | archivos: App.js, src/pantallas/Principal.js | motivo: encabezado más compacto y con la misma letra
+- style: Cierre de mes pasa a Saldar cuenta del mes y el resumen dice gastó | archivos: src/pantallas/CierreMes.js, src/pantallas/Principal.js, README.md | motivo: nombres más claros

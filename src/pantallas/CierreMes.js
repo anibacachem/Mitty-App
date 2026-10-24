@@ -20,7 +20,7 @@ function deudaActual(movimientos) {
   return { deudor: neto[0] < 0 ? 0 : 1, monto };
 }
 
-// Cierre de mes: resumen del mes y botón para registrar el pago que deja el saldo en cero.
+// Saldar cuenta del mes (cierre de mes): resumen del mes y botón para registrar el pago que deja el saldo en cero.
 // pareja: { codigo, nombre0, nombre1, yo }. onVolver: regresar a la pantalla principal.
 export default function CierreMes({ pareja, onVolver }) {
   const [movimientos, setMovimientos] = useState(null); // null = todavía cargando
@@ -147,7 +147,7 @@ export default function CierreMes({ pareja, onVolver }) {
 
   return (
     <ScrollView style={styles.pantalla} contentContainerStyle={{ padding: 24, paddingBottom: 48 }}>
-      <Text style={styles.titulo}>Cierre de mes</Text>
+      <Text style={styles.titulo}>Saldar cuenta del mes</Text>
       <Text style={styles.subtitulo}>{nombreMes[0].toUpperCase() + nombreMes.slice(1)}</Text>
 
       {exito !== '' && (
@@ -171,7 +171,7 @@ export default function CierreMes({ pareja, onVolver }) {
             </View>
             {orden.map((i) => (
               <View key={i} style={styles.fila}>
-                <Text style={styles.filaEtiqueta}>{i === yo ? `${nombres[i]} (tú) pagó` : `${nombres[i]} pagó`}</Text>
+                <Text style={styles.filaEtiqueta}>{i === yo ? `${nombres[i]} (tú) gastó` : `${nombres[i]} gastó`}</Text>
                 <Text style={styles.filaValor}>{pesos(pagoPorPersona[i])}</Text>
               </View>
             ))}
