@@ -58,3 +58,4 @@
 - feat: Detalle del saldo en dos grupos y filtro Personales e invitaciones | archivos: src/saldo.js, src/pantallas/Principal.js | motivo: separar gastos compartidos de personales/invitaciones y que los personales aparezcan en un filtro
 - docs: README y esquema al día con dueño del gasto y Detalle en dos grupos | archivos: README.md, supabase/esquema.sql | motivo: dejar documentada la nueva lógica y la columna dueno
 - feat: Ritual con meta semanal 8 de 10 y acumulado del mes | archivos: src/habito.js, src/mensajes.js, src/pantallas/Ritual.js | motivo: medir el hábito de anotar gastos en el momento, con semanas lunes a domingo completas
+- feat: pantalla principal muestra la semana X/10 y se limpia lo de declarar días | archivos: src/pantallas/Principal.js, src/datos.js, src/habito.js | motivo: una sola meta (8 de 10 por semana) en toda la app

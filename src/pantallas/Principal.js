@@ -4,8 +4,7 @@ import * as Clipboard from 'expo-clipboard';
 import { cargarTodo } from '../datos';
 import { etiquetaTipo, fechaConDia, hoyISO, pesos } from '../formato';
 import { calcularBalance, describirSaldo, resultadoEnPalabras, textoReparto } from '../saldo';
-import { limitesDelMes, medirPeriodo } from '../habito';
-import DiaDeclarable from '../componentes/DiaDeclarable';
+import { EXITO_SEMANA, META_SEMANA, limitesDelMes, medirSemana, semanaCompleta } from '../habito';
 import { guardarActivado, leerActivado, notificacionDePrueba, pedirPermiso } from '../notificaciones';
 import { ACENTO } from '../colores';
 
@@ -26,8 +25,6 @@ const ALTO_CAJA = 400; // alto de la caja de gastos: caben unos 5 gastos; el res
 export default function Principal({ pareja, aviso, onAnadir, onAsistente, onRitual, onCierre, onSalir }) {
   const [copiado, setCopiado] = useState(false);
   const [movimientos, setMovimientos] = useState([]);
-  const [declaraciones, setDeclaraciones] = useState([]); // días declarados con menos de 3 gastos
-  const [metasDisponible, setMetasDisponible] = useState(true); // false si falta la tabla metas_dia
   const [cargando, setCargando] = useState(true); // primera carga
   const [refrescando, setRefrescando] = useState(false); // al arrastrar hacia abajo
   const [conexion, setConexion] = useState('probando'); // 'probando' | 'ok' | 'sin'
@@ -54,10 +51,8 @@ export default function Principal({ pareja, aviso, onAnadir, onAsistente, onRitu
     if (enCurso.current) return;
     enCurso.current = true;
     try {
-      const datos = await cargarTodo(pareja.codigo); // gastos + días declarados, en paralelo
+      const datos = await cargarTodo(pareja.codigo);
       setMovimientos(datos.movimientos);
-      setDeclaraciones(datos.declaraciones);
-      setMetasDisponible(datos.metasDisponible);
       setConexion('ok');
     } catch (e) {
       setConexion('sin');
@@ -135,10 +130,11 @@ export default function Principal({ pareja, aviso, onAnadir, onAsistente, onRitu
 
   const esDomingo = new Date().getDay() === 0; // 0 = domingo
 
-  // Cómo va el día de hoy: gastos compartidos anotados contra la meta (3, o lo declarado)
+  // Cómo va la semana (lunes a domingo): gastos anotados contra la meta, igual que en el Ritual
   const hoy = hoyISO();
-  const diaHoy = medirPeriodo(movimientos, declaraciones, hoy, hoy, hoy).dias[0];
-  const declaracionHoy = declaraciones.find((d) => d.fecha === hoy);
+  const semanaHoy = semanaCompleta(hoy);
+  const medSemana = medirSemana(movimientos, semanaHoy.desde, semanaHoy.hasta);
+  const anotadosHoy = medSemana.porDia[hoy] || 0;
   const esFinDeMes = hoy === limitesDelMes(hoy).hasta; // último día del mes: toca el cierre
 
   // Mes que muestra la lista: 0 = el actual, -1 = el anterior, etc. (el saldo siempre usa todo)
@@ -272,32 +268,27 @@ export default function Principal({ pareja, aviso, onAnadir, onAsistente, onRitu
         </Pressable>
       </View>
 
-      {/* Hoy: gastos compartidos anotados contra la meta, con punto por gasto y opción de declarar menos */}
-      <View style={styles.tarjetaHoy}>
+      {/* Esta semana: gastos anotados contra la meta (8 de 10), una barra de 10 tramos. Al tocarla abre el Ritual */}
+      <Pressable style={styles.tarjetaHoy} onPress={onRitual}>
         <View style={styles.hoyFila}>
-          <Text style={styles.hoyTitulo}>Hoy</Text>
-          <View style={styles.puntos}>
-            {Array.from({ length: diaHoy.objetivo }).map((_, i) => (
-              <View key={i} style={[styles.puntoHoy, i < diaHoy.contados && styles.puntoHoyLleno]} />
-            ))}
-          </View>
-          <Text style={[styles.hoyConteo, diaHoy.completo ? styles.verde : styles.ambar]}>
-            {diaHoy.objetivo === 0
-              ? 'Sin gastos hoy'
-              : `${diaHoy.contados}/${diaHoy.objetivo}${diaHoy.extra > 0 ? '+' : ''}`}
+          <Text style={styles.hoyTitulo}>Esta semana</Text>
+          <Text style={[styles.hoyConteo, medSemana.estado === 'logrado' ? styles.verde : styles.ambar]}>
+            {medSemana.anotados}/{META_SEMANA}
           </Text>
         </View>
-        <Text style={styles.hoySub}>Gastos compartidos anotados</Text>
-        <DiaDeclarable
-          compacto
-          pareja={pareja}
-          fecha={hoy}
-          dia={diaHoy}
-          declaracion={declaracionHoy}
-          disponible={metasDisponible}
-          onCambio={cargar}
-        />
-      </View>
+        <View style={styles.tramos}>
+          {Array.from({ length: META_SEMANA }).map((_, i) => (
+            <View key={i} style={[styles.tramo, i < medSemana.anotados && styles.tramoLleno,
+              i === EXITO_SEMANA - 1 && styles.tramoMeta]} />
+          ))}
+        </View>
+        <Text style={styles.hoySub}>
+          {medSemana.estado === 'logrado'
+            ? '¡Meta de la semana lograda!'
+            : `Faltan ${medSemana.faltan} para la meta de ${EXITO_SEMANA}`}
+          {` · Hoy: ${anotadosHoy} ${anotadosHoy === 1 ? 'anotado' : 'anotados'}`}
+        </Text>
+      </Pressable>
 
       {/* Ritual de domingo y Cierre de mes, lado a lado para ahorrar espacio.
           Siempre disponibles; el día que toca, el botón se resalta y dice "Hoy toca". */}
@@ -547,12 +538,14 @@ const styles = StyleSheet.create({
   tarjetaHoy: { backgroundColor: '#fff', borderRadius: 16, padding: 16, borderWidth: 1,
     borderColor: '#F0E4E0', marginTop: 12 },
   hoyFila: { flexDirection: 'row', alignItems: 'center' },
-  hoyTitulo: { fontSize: 17, fontWeight: '700', color: '#222', marginRight: 12 },
-  puntos: { flexDirection: 'row', flex: 1 },
-  puntoHoy: { width: 14, height: 14, borderRadius: 7, borderWidth: 2, borderColor: ACENTO, marginRight: 6 },
-  puntoHoyLleno: { backgroundColor: ACENTO },
-  hoyConteo: { fontSize: 17, fontWeight: '700' },
-  hoySub: { fontSize: 12, color: '#888', marginTop: 4 },
+  hoyTitulo: { fontSize: 17, fontWeight: '700', color: '#222' },
+  tramos: { flexDirection: 'row', marginTop: 10 },
+  tramo: { flex: 1, height: 10, borderRadius: 5, marginRight: 4, borderWidth: 1.5, borderColor: '#F0E4E0',
+    backgroundColor: '#FFF3EF' },
+  tramoLleno: { backgroundColor: ACENTO, borderColor: ACENTO },
+  tramoMeta: { borderColor: '#16A34A' }, // el tramo 8 marca la meta de éxito
+  hoyConteo: { fontSize: 17, fontWeight: '700', marginLeft: 'auto' },
+  hoySub: { fontSize: 12, color: '#888', marginTop: 8 },
   ambar: { color: '#D97706' }, // ("verde" ya existe más abajo, en el detalle del saldo)
   filaRitual: { flexDirection: 'row', marginTop: 12 },
   botonRitual: { flex: 1, borderWidth: 2, borderColor: ACENTO, paddingVertical: 14, borderRadius: 16,
