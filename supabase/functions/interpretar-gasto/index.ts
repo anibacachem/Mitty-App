@@ -139,18 +139,23 @@ Deno.serve(async (req: Request) => {
     }
 
     // 3) Llamada a la IA (Gemini). La llave viaja en un header, solo entre Supabase y Google.
-    const respuestaIA = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/${MODELO}:generateContent`,
-      {
+    const llamarIA = (partesUsadas: unknown[]) =>
+      fetch(`https://generativelanguage.googleapis.com/v1beta/models/${MODELO}:generateContent`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'x-goog-api-key': llaveIA },
         body: JSON.stringify({
           systemInstruction: { parts: [{ text: instrucciones(nombres[yo], nombres[yo === 0 ? 1 : 0], hoyOk) }] },
-          contents: [{ role: 'user', parts: partes }],
+          contents: [{ role: 'user', parts: partesUsadas }],
           generationConfig: { responseMimeType: 'application/json', responseSchema: ESQUEMA, temperature: 0 },
         }),
-      }
-    );
+      });
+    let respuestaIA = await llamarIA(partes);
+    // Si Google no reconoce el tipo de audio (error 400), reintentamos una vez declarándolo como AAC,
+    // que es lo que realmente graba el teléfono dentro del archivo .m4a
+    if (!respuestaIA.ok && respuestaIA.status === 400 && partes.length === 2 && 'inline_data' in (partes[0] as object)) {
+      const reintento = [{ inline_data: { mime_type: 'audio/aac', data: audioBase64 } }, partes[1]];
+      respuestaIA = await llamarIA(reintento);
+    }
     if (!respuestaIA.ok) {
       const detalle = (await respuestaIA.text()).slice(0, 200);
       return responder({ ok: false, mensaje: `La IA no respondió (${respuestaIA.status}). ${detalle}` }, 502);

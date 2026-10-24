@@ -1,7 +1,10 @@
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import {
   KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View,
 } from 'react-native';
+import {
+  AudioModule, RecordingPresets, setAudioModeAsync, useAudioRecorder, useAudioRecorderState,
+} from 'expo-audio';
 import { etiquetaTipo, fechaConDia, formatearMonto, hace, hoyISO } from '../formato';
 import { textoReparto } from '../saldo';
 import { interpretarGasto } from '../ia';
@@ -15,8 +18,27 @@ const EJEMPLOS = [
   'Bencina 30 mil, 60% mío y 40% de Ana',
 ];
 
-// Ventana de chat del asistente. Envía lo que escribes a la IA (vía una función de Supabase) y muestra
-// lo que entendió, con botones Confirmar (guarda el gasto) y Corregir. Aún no recibe audio (paso 4).
+const MAX_GRABACION_MS = 30000; // una nota de voz dura como máximo 30 segundos (se envía sola al llegar)
+const MIN_GRABACION_MS = 1000; // menos de 1 segundo se descarta (fue un toque sin querer)
+
+// Convierte el archivo de audio grabado en texto base64, que es como viaja dentro del JSON hacia la función.
+// Usamos fetch + FileReader (ya vienen con React Native) para no instalar otra librería.
+async function leerBase64(uri) {
+  const respuesta = await fetch(uri);
+  const blob = await respuesta.blob();
+  return new Promise((resolve, reject) => {
+    const lector = new FileReader();
+    lector.onloadend = () => resolve(String(lector.result).split(',')[1] || ''); // quitamos "data:audio/...;base64,"
+    lector.onerror = () => reject(new Error('no se pudo leer el audio'));
+    lector.readAsDataURL(blob);
+  });
+}
+
+// "7" -> "0:07"
+const reloj = (ms) => `${Math.floor(ms / 60000)}:${String(Math.floor(ms / 1000) % 60).padStart(2, '0')}`;
+
+// Ventana de chat del asistente. Acepta texto o una nota de voz, la envía a la IA (vía una función de
+// Supabase) y muestra lo que entendió, con botones Confirmar (guarda el gasto) y Corregir.
 // pareja: { codigo, nombre0, nombre1, yo }. onVolver: cerrar el chat y volver a la principal.
 export default function AsistenteIA({ pareja, onVolver }) {
   const nombres = [pareja.nombre0, pareja.nombre1];
@@ -31,6 +53,16 @@ export default function AsistenteIA({ pareja, onVolver }) {
     },
   ]);
   const scroll = useRef(null);
+
+  // Grabadora de audio (expo-audio). "estadoGrab" se actualiza solo: si graba y cuánto lleva.
+  const grabador = useAudioRecorder(RecordingPresets.HIGH_QUALITY);
+  const estadoGrab = useAudioRecorderState(grabador);
+  const deteniendo = useRef(false); // evita detener dos veces seguidas (botón + corte automático)
+
+  // Corte automático a los 30 segundos
+  useEffect(() => {
+    if (estadoGrab.isRecording && estadoGrab.durationMillis >= MAX_GRABACION_MS) detenerYEnviar();
+  }, [estadoGrab.durationMillis]);
 
   // Agrega un mensaje al final y baja el chat hasta él
   function agregar(rol, contenido) {
@@ -94,8 +126,12 @@ export default function AsistenteIA({ pareja, onVolver }) {
     const mensaje = mensajes.find((m) => m.id === idMensaje);
     if (!mensaje || !mensaje.propuesta) return;
     cambiarPropuesta(idMensaje, { estado: 'descartado' });
-    setTexto(mensaje.propuesta.textoOriginal);
-    agregar('ia', 'Sin problema. Edita el texto, o dime los cambios, y vuelve a enviarlo.');
+    if (mensaje.propuesta.textoOriginal) {
+      setTexto(mensaje.propuesta.textoOriginal);
+      agregar('ia', 'Sin problema. Edita el texto, o dime los cambios, y vuelve a enviarlo.');
+    } else {
+      agregar('ia', 'Sin problema. Grábalo de nuevo o escríbelo.'); // venía de una nota de voz: no hay texto que devolver
+    }
   }
 
   // Arma el texto de lo que entendió la IA: "Entendí: $42.000 · Super · Mitad · pagó Ana · hoy"
@@ -112,18 +148,64 @@ export default function AsistenteIA({ pareja, onVolver }) {
     if (limpio === '' || pensando) return;
     agregar('yo', limpio);
     setTexto('');
+    await consultarIA({ texto: limpio }, limpio);
+  }
+
+  // Empieza a grabar: pide permiso la primera vez y prepara el micrófono
+  async function iniciarGrabacion() {
+    if (pensando || estadoGrab.isRecording) return;
+    try {
+      const permiso = await AudioModule.requestRecordingPermissionsAsync();
+      if (!permiso.granted) {
+        agregar('ia', 'Necesito permiso para usar el micrófono. Actívalo en los ajustes del teléfono, o escribe el gasto.');
+        return;
+      }
+      await setAudioModeAsync({ allowsRecording: true, playsInSilentMode: true });
+      await grabador.prepareToRecordAsync();
+      grabador.record();
+    } catch (e) {
+      agregar('ia', 'No pude iniciar la grabación: ' + String(e.message).slice(0, 100));
+    }
+  }
+
+  // Termina de grabar, convierte el audio y lo manda a la IA igual que un texto
+  async function detenerYEnviar() {
+    if (deteniendo.current) return;
+    deteniendo.current = true;
+    try {
+      const duracion = estadoGrab.durationMillis || 0;
+      await grabador.stop();
+      await setAudioModeAsync({ allowsRecording: false });
+      if (duracion < MIN_GRABACION_MS) {
+        agregar('ia', 'El audio fue muy corto. Mantén la grabación mientras me cuentas el gasto.');
+        return;
+      }
+      const uri = grabador.uri;
+      if (!uri) throw new Error('el audio no se guardó');
+      agregar('yo', `Nota de voz (${reloj(duracion)})`);
+      const audioBase64 = await leerBase64(uri);
+      await consultarIA({ audioBase64, mime: 'audio/mp4' }, ''); // sin texto original: no hay qué devolver al campo
+    } catch (e) {
+      agregar('ia', 'No pude procesar el audio: ' + String(e.message).slice(0, 100));
+    } finally {
+      deteniendo.current = false;
+    }
+  }
+
+  // Manda la entrada (texto o audio) a la IA y muestra lo que entendió
+  async function consultarIA(entrada, textoOriginal) {
     setPensando(true);
     const idPensando = 'pensando' + Date.now();
     setMensajes((previos) => [...previos, { id: idPensando, rol: 'ia', texto: 'Pensando…' }]);
     try {
-      const r = await interpretarGasto({ codigo: pareja.codigo, yo: pareja.yo, texto: limpio });
+      const r = await interpretarGasto({ codigo: pareja.codigo, yo: pareja.yo, ...entrada });
       if (!r.ok) {
         reemplazar(idPensando, r.mensaje || 'No entendí el gasto.');
       } else {
         const supuestos = r.supuestos ? `\nAsumí: ${r.supuestos}` : '';
         // El mensaje lleva la propuesta: así se dibujan los botones Confirmar / Corregir debajo
         reemplazar(idPensando, `${describir(r.gasto)}${supuestos}\n\n¿Lo anoto?`, {
-          propuesta: { gasto: r.gasto, idGasto: generarId(), estado: 'pendiente', textoOriginal: limpio, error: '' },
+          propuesta: { gasto: r.gasto, idGasto: generarId(), estado: 'pendiente', textoOriginal, error: '' },
         });
       }
     } catch (e) {
@@ -192,8 +274,26 @@ export default function AsistenteIA({ pareja, onVolver }) {
         )}
       </ScrollView>
 
-      {/* Campo de texto y botón enviar (el botón de voz llega en el paso 4) */}
+      {/* Aviso mientras graba */}
+      {estadoGrab.isRecording && (
+        <View style={styles.grabando}>
+          <Text style={styles.grabandoTexto}>
+            Grabando {reloj(estadoGrab.durationMillis || 0)} · toca "Enviar voz" cuando termines
+          </Text>
+        </View>
+      )}
+
+      {/* Botón de voz, campo de texto y botón enviar */}
       <View style={styles.barra}>
+        <Pressable
+          style={[styles.voz, estadoGrab.isRecording && styles.vozGrabando, pensando && { opacity: 0.4 }]}
+          onPress={estadoGrab.isRecording ? detenerYEnviar : iniciarGrabacion}
+          disabled={pensando}
+        >
+          <Text style={[styles.vozTexto, estadoGrab.isRecording && { color: '#fff' }]}>
+            {estadoGrab.isRecording ? 'Enviar voz' : 'Voz'}
+          </Text>
+        </Pressable>
         <TextInput
           style={styles.campo}
           value={texto}
@@ -236,6 +336,12 @@ const styles = StyleSheet.create({
   ejemploTexto: { color: ACENTO, fontSize: 14, fontWeight: '600' },
   barra: { flexDirection: 'row', alignItems: 'flex-end', padding: 12, borderTopWidth: 1,
     borderTopColor: '#E5E5E0', backgroundColor: '#fff' },
+  voz: { borderWidth: 2, borderColor: ACENTO, borderRadius: 18, paddingVertical: 9, paddingHorizontal: 14,
+    marginRight: 8, backgroundColor: '#fff' },
+  vozGrabando: { backgroundColor: '#B91C1C', borderColor: '#B91C1C' },
+  vozTexto: { color: ACENTO, fontWeight: '700', fontSize: 15 },
+  grabando: { backgroundColor: '#FDECEC', paddingVertical: 8, paddingHorizontal: 16 },
+  grabandoTexto: { color: '#B91C1C', fontSize: 14, fontWeight: '600', textAlign: 'center' },
   campo: { flex: 1, maxHeight: 110, backgroundColor: '#F6F6F3', borderRadius: 18, paddingHorizontal: 14,
     paddingVertical: 10, fontSize: 16 },
   enviar: { backgroundColor: ACENTO, borderRadius: 18, paddingVertical: 11, paddingHorizontal: 18, marginLeft: 8 },

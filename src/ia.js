@@ -8,17 +8,18 @@ const LLAVE = process.env.EXPO_PUBLIC_SUPABASE_KEY;
 // La IA tarda más que la base de datos, por eso damos más margen (20 segundos)
 const ESPERA_MAXIMA_MS = 20000;
 
-// Envía una frase y devuelve { ok: true, gasto, supuestos } o { ok: false, mensaje }.
-//   codigo: código de la pareja. yo: 0 o 1 (quién habla). texto: lo que escribió.
+// Envía una frase (texto) o una nota de voz (audioBase64 + mime) y devuelve
+// { ok: true, gasto, supuestos } o { ok: false, mensaje }.
+//   codigo: código de la pareja. yo: 0 o 1 (quién habla).
 // Si no hay conexión o la función falla, lanza un Error con el motivo.
-export async function interpretarGasto({ codigo, yo, texto }) {
+export async function interpretarGasto({ codigo, yo, texto, audioBase64, mime }) {
   const controlador = new AbortController();
   const temporizador = setTimeout(() => controlador.abort(), ESPERA_MAXIMA_MS);
   try {
     const respuesta = await fetch(`${URL_BASE}/functions/v1/interpretar-gasto`, {
       method: 'POST',
       headers: { apikey: LLAVE, 'x-pareja': codigo, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ texto, yo, hoy: hoyISO() }),
+      body: JSON.stringify({ texto, audioBase64, mime, yo, hoy: hoyISO() }),
       signal: controlador.signal,
     });
     const datos = await respuesta.json().catch(() => null);

@@ -17,6 +17,14 @@
         "monochromeImage": "./assets/android-icon-monochrome.png"
       }
     },
+    "plugins": [
+      [
+        "expo-audio",
+        {
+          "microphonePermission": "Mitty usa el micrófono para que anotes gastos hablando."
+        }
+      ]
+    ],
     "web": {
       "favicon": "./assets/favicon.png"
     }
