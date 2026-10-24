@@ -73,3 +73,4 @@
 - feat: recordatorios diarios fijos a las 10:00, 15:00 y 20:00 | archivos: src/notificaciones.js, src/pantallas/Principal.js, App.js, README.md | motivo: que el interruptor del engranaje programe los avisos de verdad (antes solo mandaba una prueba)
 - feat: tocar un recordatorio abre Añadir gasto; README declara la prueba de ~20 s por gasto | archivos: src/notificaciones.js, App.js, README.md | motivo: reducir el esfuerzo a un toque y documentar la medición informal
 - chore: se quita la fuente Fredoka sin uso y se guarda la configuración pendiente | archivos: package.json, package-lock.json, app.json, tsconfig.json, .env.example, CLAUDE.md | motivo: dejar el repositorio limpio y sin dependencias de más
+- docs: guion de demo de 5 minutos (DEMO.md) y README con el costo del fin de mes | archivos: DEMO.md, README.md | motivo: preparar el pitch con problema, intentos, por qué una app, demo, progreso y cierre

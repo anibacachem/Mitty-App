@@ -4,7 +4,7 @@ Una app para que una pareja anote en segundos sus gastos compartidos y cierre el
 
 ## Qué problema decidimos atacar
 
-La pareja comparte muchos gastos: unos a medias, otros que paga uno por el otro y otros que son una invitación. Cada fin de mes discuten porque no recuerdan quién pagó qué ni cuál fue invitación, y el historial del banco no trae ese detalle. Intentaron llevar un hilo de WhatsApp con cada gasto compartido, pero se perdía entre otros mensajes y dejaron de usarlo.
+La pareja comparte muchos gastos: unos a medias, otros que paga uno por el otro y otros que son una invitación. Cada fin de mes discuten porque no recuerdan quién pagó qué ni cuál fue invitación, y el historial del banco no trae ese detalle. Intentaron llevar un hilo de WhatsApp con cada gasto compartido, pero se perdía entre otros mensajes y dejaron de usarlo. A fin de mes perdían tiempo y cabeza recordando quién invitó a qué y qué se pagó a medias, y calculando y rastreando.
 
 El problema no es calcular quién debe a quién. Es el hábito de anotar cada gasto en el momento en que ocurre.
 
@@ -60,6 +60,8 @@ Para Mitty AI (opcional; sin esto la app funciona igual, solo no anota por texto
 3. Despliega la función. Cada vez que cambies `index.ts` hay que volver a desplegarla.
 
 La capa gratuita de Gemini puede usar el contenido para mejorar productos de Google, por eso en las pruebas se usan solo datos inventados.
+
+El guion de la presentación de 5 minutos está en [DEMO.md](DEMO.md).
 
 Demo con una pareja ficticia: [código de la pareja de demo]. Versión web: [link, si existe].
 
