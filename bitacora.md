@@ -50,3 +50,4 @@
 - style: engranaje con ventana flotante para el código y los recordatorios | archivos: src/pantallas/Principal.js, bitacora.md | motivo: pantalla principal más limpia; el código de enlace (con Copiar) y el interruptor de recordatorios salen de la lista y viven en la ventana del engranaje
 - style: Cerrar sesión pasa a la ventana del engranaje | archivos: src/pantallas/Principal.js, bitacora.md | motivo: la lista queda sin elementos sueltos al final; cierra la ventana y luego muestra la confirmación con el código
 - style: logo de Mitty (carga y esquina) y paleta naranja-rosa | archivos: assets/*.png, src/colores.js, App.js, pantallas y componentes | motivo: identidad visual igual al logo
+- fix: logo limpio, opaco y con esquinas suaves | archivos: assets/logo.png, icon.png, splash-icon.png, favicon.png, app.json | motivo: el logo se veía con bordes/transparencias raras al cargar
