@@ -3,6 +3,7 @@ import {
   ActivityIndicator, Animated, BackHandler, Dimensions, Image, PanResponder, SafeAreaView, View,
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
+import { useFonts, Nunito_800ExtraBold } from '@expo-google-fonts/nunito';
 import Inicio from './src/pantallas/Inicio';
 import CrearPareja from './src/pantallas/CrearPareja';
 import UnirmeConCodigo from './src/pantallas/UnirmeConCodigo';
@@ -32,6 +33,9 @@ export default function App() {
   const [pantalla, setPantalla] = useState('inicio');
   const [pareja, setPareja] = useState(null); // { codigo, nombre0, nombre1, yo }
   const [cargando, setCargando] = useState(true); // true mientras leemos la sesión guardada
+  // Letra redondeada y ancha para el saludo. Si no logra cargar, la app sigue con la letra normal.
+  const [fuentesListas, errorFuentes] = useFonts({ Nunito_800ExtraBold });
+  const esperando = cargando || !(fuentesListas || errorFuentes); // mostramos el logo hasta tener sesión y letra
   const [aviso, setAviso] = useState(''); // mensaje corto en la pantalla principal ("Gasto anotado")
 
   // ---- Volver atrás arrastrando desde el borde izquierdo (como en el iPhone) ----
@@ -132,7 +136,7 @@ export default function App() {
     <SafeAreaView style={{ flex: 1, backgroundColor: FONDO }}>
       <StatusBar style="dark" />
       {/* Mientras leemos la sesión guardada se ve el logo de Mitty */}
-      {cargando && (
+      {esperando && (
         <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
           <Image source={require('./assets/logo.png')} style={{ width: 140, height: 140 }} />
           <ActivityIndicator style={{ marginTop: 24 }} color={ACENTO} />
@@ -140,25 +144,25 @@ export default function App() {
       )}
       {/* Todas las pantallas van dentro de esta vista, que se desliza con el dedo al volver atrás */}
       <Animated.View style={{ flex: 1, backgroundColor: FONDO, transform: [{ translateX: desliz }] }}>
-      {!cargando && pantalla === 'inicio' && (
+      {!esperando && pantalla === 'inicio' && (
         <Inicio
           onCrear={() => setPantalla('crear')}
           onUnirme={() => setPantalla('unirme')}
         />
       )}
-      {!cargando && pantalla === 'crear' && (
+      {!esperando && pantalla === 'crear' && (
         <CrearPareja
           onVolver={() => setPantalla('inicio')}
           onListo={(datos) => entrar({ ...datos, yo: 0 })} // quien crea es la primera persona
         />
       )}
-      {!cargando && pantalla === 'unirme' && (
+      {!esperando && pantalla === 'unirme' && (
         <UnirmeConCodigo
           onVolver={() => setPantalla('inicio')}
           onListo={entrar} // ya trae "yo" (0 o 1) según lo que elegiste
         />
       )}
-      {!cargando && pantalla === 'principal' && (
+      {!esperando && pantalla === 'principal' && (
         <Principal
           pareja={pareja}
           aviso={aviso}
@@ -169,16 +173,16 @@ export default function App() {
           onSalir={salir}
         />
       )}
-      {!cargando && pantalla === 'asistente' && (
+      {!esperando && pantalla === 'asistente' && (
         <AsistenteIA pareja={pareja} onVolver={() => setPantalla('principal')} />
       )}
-      {!cargando && pantalla === 'cierre' && (
+      {!esperando && pantalla === 'cierre' && (
         <CierreMes pareja={pareja} onVolver={() => setPantalla('principal')} />
       )}
-      {!cargando && pantalla === 'ritual' && (
+      {!esperando && pantalla === 'ritual' && (
         <Ritual pareja={pareja} onVolver={() => setPantalla('principal')} />
       )}
-      {!cargando && pantalla === 'anadir' && (
+      {!esperando && pantalla === 'anadir' && (
         <AnadirGasto
           pareja={pareja}
           onCerrar={() => setPantalla('principal')}
@@ -189,7 +193,7 @@ export default function App() {
       </Animated.View>
 
       {/* Franja invisible en el borde izquierdo: ahí empieza el gesto de volver. Solo existe en pantallas con "atrás". */}
-      {!cargando && DESTINO_ATRAS[pantalla] && (
+      {!esperando && DESTINO_ATRAS[pantalla] && (
         <View style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: ZONA_BORDE }}
           {...gestoAtras.panHandlers} />
       )}
