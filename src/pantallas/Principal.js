@@ -3,7 +3,6 @@ import { ActivityIndicator, Alert, FlatList, Image, Modal, Pressable, ScrollView
 import * as Clipboard from 'expo-clipboard';
 import { cargarTodo } from '../datos';
 import { pedir } from '../supabase';
-import FilaDeslizable from '../componentes/FilaDeslizable';
 import { etiquetaTipo, fechaConDia, hoyISO, pesos } from '../formato';
 import { calcularBalance, describirSaldo, resultadoEnPalabras, textoReparto } from '../saldo';
 import { EXITO_SEMANA, META_SEMANA, limitesDelMes, medirSemana, semanaCompleta } from '../habito';
@@ -34,6 +33,8 @@ export default function Principal({ pareja, aviso, onAnadir, onAsistente, onRitu
   const [recientePrimero, setRecientePrimero] = useState(true); // orden de la lista: true = más reciente arriba
   const [mesOffset, setMesOffset] = useState(0); // mes de la lista: 0 = actual, -1 = anterior...
   const [filtro, setFiltro] = useState('todos'); // filtro activo de la lista del mes
+  const [modoSeleccion, setModoSeleccion] = useState(false); // ¿estamos eligiendo gastos para eliminar?
+  const [seleccion, setSeleccion] = useState([]); // ids de los gastos marcados
   const [infoAbierta, setInfoAbierta] = useState(false); // explicación del Detalle (botón i)
   const [ajustesAbiertos, setAjustesAbiertos] = useState(false); // ventana flotante del engranaje
   const [recordatorios, setRecordatorios] = useState(false); // ¿están activados los recordatorios?
@@ -210,30 +211,66 @@ export default function Principal({ pareja, aviso, onAnadir, onAsistente, onRitu
       });
       setMovimientos((previos) => previos.filter((m) => !ids.includes(m.id)));
       setAbierto(null);
+      salirSeleccion();
     } catch (e) {
       Alert.alert('No se pudo eliminar', String(e.message).slice(0, 150));
     }
   }
 
+  // ---- Seleccionar varios gastos para eliminarlos ----
+  // Los pagos del cierre no se pueden seleccionar (protegen el historial del saldo).
+  const seleccionables = listaVista.filter((m) => m.tipo !== 'pago');
+  // Solo cuentan los marcados que siguen a la vista (si cambias de filtro o mes, lo oculto no se borra)
+  const marcados = seleccionables.filter((m) => seleccion.includes(m.id));
+  const todosMarcados = seleccionables.length > 0 && marcados.length === seleccionables.length;
+
+  function salirSeleccion() {
+    setModoSeleccion(false);
+    setSeleccion([]);
+  }
+  function alternarMarca(id) {
+    setSeleccion((previa) => (previa.includes(id) ? previa.filter((x) => x !== id) : [...previa, id]));
+  }
+
   // Pide confirmación antes de borrar (el saldo cambia). Cancelar no hace nada.
-  function confirmarBorrado(item) {
+  function confirmarBorrado() {
+    if (marcados.length === 0) return;
+    const total = marcados.reduce((suma, m) => suma + Number(m.monto), 0);
     Alert.alert(
-      '¿Eliminar este gasto?',
-      `${item.descripcion} · ${pesos(Number(item.monto))}\nEsto cambia el saldo.`,
+      marcados.length === 1 ? '¿Eliminar este gasto?' : `¿Eliminar ${marcados.length} gastos?`,
+      marcados.length === 1
+        ? `${marcados[0].descripcion} · ${pesos(total)}\nEsto cambia el saldo.`
+        : `Suman ${pesos(total)}.\nEsto cambia el saldo.`,
       [
         { text: 'Cancelar', style: 'cancel' },
-        { text: 'Eliminar', style: 'destructive', onPress: () => borrarGastos([item.id]) },
+        { text: 'Eliminar', style: 'destructive', onPress: () => borrarGastos(marcados.map((m) => m.id)) },
       ]
     );
   }
 
   // Una fila de la lista. Al tocarla se abre y muestra el reparto.
-  // Los gastos se pueden arrastrar a la izquierda para eliminarlos; los pagos del cierre no (protegen el historial).
+  // En modo selección, tocarla la marca o desmarca (los pagos no se pueden marcar).
   function renderFila({ item }) {
     const expandida = abierto === item.id;
-    const fila = (
-      <Pressable style={[styles.fila, { marginTop: 0 }]} onPress={() => setAbierto(expandida ? null : item.id)}>
+    const marcable = modoSeleccion && item.tipo !== 'pago';
+    const marcada = marcable && seleccion.includes(item.id);
+    return (
+      <Pressable
+        style={[styles.fila, marcada && styles.filaMarcada, modoSeleccion && item.tipo === 'pago' && { opacity: 0.45 }]}
+        onPress={() => {
+          if (modoSeleccion) {
+            if (item.tipo !== 'pago') alternarMarca(item.id);
+          } else {
+            setAbierto(expandida ? null : item.id);
+          }
+        }}
+      >
         <View style={styles.filaArriba}>
+          {marcable && (
+            <View style={[styles.casilla, marcada && styles.casillaMarcada]}>
+              {marcada && <Text style={styles.casillaCheck}>✓</Text>}
+            </View>
+          )}
           <View style={{ flex: 1 }}>
             <Text style={styles.filaTitulo}>{item.descripcion}</Text>
             <Text style={styles.filaDetalle}>
@@ -242,11 +279,9 @@ export default function Principal({ pareja, aviso, onAnadir, onAsistente, onRitu
           </View>
           <Text style={styles.filaMonto}>{pesos(Number(item.monto))}</Text>
         </View>
-        {expandida && <Text style={styles.reparto}>Reparto: {textoReparto(item, nombres)}</Text>}
+        {expandida && !modoSeleccion && <Text style={styles.reparto}>Reparto: {textoReparto(item, nombres)}</Text>}
       </Pressable>
     );
-    if (item.tipo === 'pago') return <View style={{ marginTop: 8 }}>{fila}</View>;
-    return <FilaDeslizable onBorrar={() => confirmarBorrado(item)}>{fila}</FilaDeslizable>;
   }
 
   // Indicador de sincronización
@@ -424,8 +459,14 @@ export default function Principal({ pareja, aviso, onAnadir, onAsistente, onRitu
               <Text style={[styles.chipTexto, filtro === f.id && styles.chipTextoActivo]}>{f.texto}</Text>
             </Pressable>
           ))}
+          {/* Seleccionar: activa las casillas para elegir gastos y eliminarlos */}
+          {!modoSeleccion && seleccionables.length > 0 && (
+            <Pressable style={[styles.botonOrden, { marginLeft: 'auto' }]} onPress={() => setModoSeleccion(true)}>
+              <Text style={styles.botonOrdenTexto}>☑ Seleccionar</Text>
+            </Pressable>
+          )}
           {/* Botón pequeño que invierte el orden de la lista */}
-          <Pressable style={styles.botonOrden} onPress={() => setRecientePrimero(!recientePrimero)}>
+          <Pressable style={[styles.botonOrden, { marginLeft: modoSeleccion || seleccionables.length === 0 ? 'auto' : 0 }]} onPress={() => setRecientePrimero(!recientePrimero)}>
             <Text style={styles.botonOrdenTexto}>{recientePrimero ? '↓ Recientes' : '↑ Antiguos'}</Text>
           </Pressable>
         </View>
@@ -438,6 +479,30 @@ export default function Principal({ pareja, aviso, onAnadir, onAsistente, onRitu
         <Text style={styles.vacio}>
           {esMesActual ? 'Aún no hay gastos este mes. ¡Anota el primero!' : 'No hay movimientos en este mes.'}
         </Text>
+      )}
+
+      {/* Barra del modo selección: cuántos hay marcados, marcar todos, cancelar y eliminar */}
+      {modoSeleccion && (
+        <View style={styles.barraSeleccion}>
+          <Text style={styles.barraSeleccionTexto}>
+            {marcados.length === 0 ? 'Toca los gastos que quieres eliminar' : `${marcados.length} ${marcados.length === 1 ? 'seleccionado' : 'seleccionados'}`}
+          </Text>
+          <View style={styles.barraSeleccionBotones}>
+            <Pressable onPress={() => setSeleccion(todosMarcados ? [] : seleccionables.map((m) => m.id))} hitSlop={6}>
+              <Text style={styles.barraEnlace}>{todosMarcados ? 'Quitar todos' : 'Todos'}</Text>
+            </Pressable>
+            <Pressable onPress={salirSeleccion} hitSlop={6}>
+              <Text style={styles.barraEnlace}>Cancelar</Text>
+            </Pressable>
+            <Pressable
+              style={[styles.botonEliminar, marcados.length === 0 && { opacity: 0.4 }]}
+              disabled={marcados.length === 0}
+              onPress={confirmarBorrado}
+            >
+              <Text style={styles.botonEliminarTexto}>Eliminar{marcados.length > 0 ? ` (${marcados.length})` : ''}</Text>
+            </Pressable>
+          </View>
+        </View>
       )}
 
       {/* Caja con scroll propio: se ven unos 5 gastos (los más nuevos arriba); al bajar aparecen los más antiguos */}
@@ -627,6 +692,19 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12, marginRight: 8, marginBottom: 6, backgroundColor: '#fff' },
   botonOrden: { paddingVertical: 6, paddingHorizontal: 8, marginBottom: 6, marginLeft: 'auto' },
   botonOrdenTexto: { color: '#555', fontSize: 13, fontWeight: '600' },
+  filaMarcada: { borderColor: ACENTO, backgroundColor: '#FFF0F3' },
+  casilla: { width: 24, height: 24, borderRadius: 12, borderWidth: 2, borderColor: '#D5D5D0', marginRight: 12,
+    alignItems: 'center', justifyContent: 'center', backgroundColor: '#fff' },
+  casillaMarcada: { backgroundColor: ACENTO, borderColor: ACENTO },
+  casillaCheck: { color: '#fff', fontSize: 14, fontWeight: '800', lineHeight: 18 },
+  barraSeleccion: { backgroundColor: '#fff', borderRadius: 12, borderWidth: 1, borderColor: ACENTO, padding: 12,
+    marginBottom: 6 },
+  barraSeleccionTexto: { fontSize: 14, fontWeight: '700', color: '#222' },
+  barraSeleccionBotones: { flexDirection: 'row', alignItems: 'center', marginTop: 10 },
+  barraEnlace: { color: ACENTO, fontSize: 14, fontWeight: '700', marginRight: 18 },
+  botonEliminar: { marginLeft: 'auto', backgroundColor: '#B91C1C', borderRadius: 10, paddingVertical: 8,
+    paddingHorizontal: 16 },
+  botonEliminarTexto: { color: '#fff', fontSize: 14, fontWeight: '700' },
   chipActivo: { backgroundColor: ACENTO },
   chipTexto: { color: ACENTO, fontSize: 14, fontWeight: '600' },
   chipTextoActivo: { color: '#fff' },
