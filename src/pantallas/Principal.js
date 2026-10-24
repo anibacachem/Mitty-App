@@ -233,14 +233,17 @@ export default function Principal({ pareja, aviso, onAnadir, onAsistente, onRitu
         <Text style={[styles.saldoTexto, estiloSaldo]}>{textoSaldo}</Text>
       </View>
 
-      <Pressable style={styles.botonAnadir} onPress={onAnadir}>
-        <Text style={styles.textoAnadir}>+ Añadir gasto</Text>
-      </Pressable>
-
-      {/* Asistente IA: abre el chat para anotar un gasto escribiendo o hablando */}
-      <Pressable style={styles.botonAsistente} onPress={onAsistente}>
-        <Text style={styles.textoAsistente}>Asistente IA · dilo y lo anoto</Text>
-      </Pressable>
+      {/* Dos formas de anotar, lado a lado: Mitty AI (a la izquierda, con símbolo de IA) y el flujo normal */}
+      <View style={styles.filaAnadir}>
+        {/* Mitty AI: abre el chat para anotar un gasto escribiendo o hablando */}
+        <Pressable style={styles.botonIA} onPress={onAsistente}>
+          <Text style={styles.textoIAUno}>✦ Mitty AI</Text>
+          <Text style={styles.textoIADos}>añadir gasto</Text>
+        </Pressable>
+        <Pressable style={styles.botonAnadir} onPress={onAnadir}>
+          <Text style={styles.textoAnadir}>+ Añadir gasto</Text>
+        </Pressable>
+      </View>
 
       {/* Hoy: gastos compartidos anotados contra la meta, con punto por gasto y opción de declarar menos */}
       <View style={styles.tarjetaHoy}>
@@ -269,19 +272,21 @@ export default function Principal({ pareja, aviso, onAnadir, onAsistente, onRitu
         />
       </View>
 
-      {/* Ritual de domingo: siempre disponible; los domingos se resalta */}
-      <Pressable style={[styles.botonRitual, esDomingo && styles.botonRitualHoy]} onPress={onRitual}>
-        <Text style={[styles.textoRitual, esDomingo && styles.textoRitualHoy]}>
-          {esDomingo ? 'Hoy toca el ritual de domingo' : 'Ritual de domingo'}
-        </Text>
-      </Pressable>
-
-      {/* Cierre de mes: siempre disponible; el último día del mes se resalta */}
-      <Pressable style={[styles.botonRitual, esFinDeMes && styles.botonRitualHoy]} onPress={onCierre}>
-        <Text style={[styles.textoRitual, esFinDeMes && styles.textoRitualHoy]}>
-          {esFinDeMes ? 'Hoy toca el cierre de mes' : 'Cierre de mes'}
-        </Text>
-      </Pressable>
+      {/* Ritual de domingo y Cierre de mes, lado a lado para ahorrar espacio.
+          Siempre disponibles; el día que toca, el botón se resalta y dice "Hoy toca". */}
+      <View style={styles.filaRitual}>
+        <Pressable
+          style={[styles.botonRitual, { marginRight: 10 }, esDomingo && styles.botonRitualHoy]}
+          onPress={onRitual}
+        >
+          {esDomingo && <Text style={styles.textoHoyToca}>Hoy toca</Text>}
+          <Text style={[styles.textoRitual, esDomingo && styles.textoRitualHoy]}>Ritual de domingo</Text>
+        </Pressable>
+        <Pressable style={[styles.botonRitual, esFinDeMes && styles.botonRitualHoy]} onPress={onCierre}>
+          {esFinDeMes && <Text style={styles.textoHoyToca}>Hoy toca</Text>}
+          <Text style={[styles.textoRitual, esFinDeMes && styles.textoRitualHoy]}>Cierre de mes</Text>
+        </Pressable>
+      </View>
 
       {/* Tarjeta de detalle: los números que explican el saldo */}
       <View style={[styles.tarjeta, { marginTop: 20 }]}>
@@ -471,11 +476,15 @@ const styles = StyleSheet.create({
   puntoOk: { backgroundColor: '#16A34A' },
   puntoMal: { backgroundColor: '#B91C1C' },
   estadoTexto: { fontSize: 12, color: '#777' },
-  botonAnadir: { backgroundColor: ACENTO, paddingVertical: 20, borderRadius: 16, marginTop: 16 },
-  textoAnadir: { color: '#fff', fontSize: 20, fontWeight: '700', textAlign: 'center' },
-  botonAsistente: { backgroundColor: '#D7EEEA', paddingVertical: 14, borderRadius: 16, marginTop: 10,
-    borderWidth: 1.5, borderColor: ACENTO },
-  textoAsistente: { color: ACENTO, fontSize: 16, fontWeight: '700', textAlign: 'center' },
+  filaAnadir: { flexDirection: 'row', marginTop: 16 },
+  botonAnadir: { flex: 1.2, backgroundColor: ACENTO, paddingVertical: 20, borderRadius: 16,
+    alignItems: 'center', justifyContent: 'center' },
+  textoAnadir: { color: '#fff', fontSize: 18, fontWeight: '700', textAlign: 'center' },
+  // Mitty AI: oscuro y con el símbolo ✦ para que se lea como "la opción de IA"
+  botonIA: { flex: 1, backgroundColor: '#134E4A', paddingVertical: 12, borderRadius: 16, marginRight: 10,
+    alignItems: 'center', justifyContent: 'center' },
+  textoIAUno: { color: '#fff', fontSize: 17, fontWeight: '800' },
+  textoIADos: { color: '#9FD8D0', fontSize: 12, fontWeight: '600', marginTop: 1 },
   tarjetaHoy: { backgroundColor: '#fff', borderRadius: 16, padding: 16, borderWidth: 1,
     borderColor: '#E5E5E0', marginTop: 12 },
   hoyFila: { flexDirection: 'row', alignItems: 'center' },
@@ -486,10 +495,12 @@ const styles = StyleSheet.create({
   hoyConteo: { fontSize: 17, fontWeight: '700' },
   hoySub: { fontSize: 12, color: '#888', marginTop: 4 },
   ambar: { color: '#D97706' }, // ("verde" ya existe más abajo, en el detalle del saldo)
-  botonRitual: { borderWidth: 2, borderColor: ACENTO, paddingVertical: 16, borderRadius: 16,
-    marginTop: 12, backgroundColor: '#fff' },
+  filaRitual: { flexDirection: 'row', marginTop: 12 },
+  botonRitual: { flex: 1, borderWidth: 2, borderColor: ACENTO, paddingVertical: 14, borderRadius: 16,
+    backgroundColor: '#fff', alignItems: 'center', justifyContent: 'center' },
   botonRitualHoy: { backgroundColor: '#D7EEEA' },
-  textoRitual: { color: ACENTO, fontSize: 17, fontWeight: '600', textAlign: 'center' },
+  textoHoyToca: { color: ACENTO, fontSize: 11, fontWeight: '800', textTransform: 'uppercase', letterSpacing: 0.5 },
+  textoRitual: { color: ACENTO, fontSize: 16, fontWeight: '600', textAlign: 'center' },
   textoRitualHoy: { fontWeight: '700' },
   detalleFila: { flexDirection: 'row', alignItems: 'center', paddingVertical: 6 },
   detalleTexto: { flex: 1.3, fontSize: 14, color: '#555' },
