@@ -2,6 +2,8 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { ActivityIndicator, Alert, FlatList, Image, Modal, Pressable, ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
 import * as Clipboard from 'expo-clipboard';
 import { cargarTodo } from '../datos';
+import { pedir } from '../supabase';
+import FilaDeslizable from '../componentes/FilaDeslizable';
 import { etiquetaTipo, fechaConDia, hoyISO, pesos } from '../formato';
 import { calcularBalance, describirSaldo, resultadoEnPalabras, textoReparto } from '../saldo';
 import { EXITO_SEMANA, META_SEMANA, limitesDelMes, medirSemana, semanaCompleta } from '../habito';
@@ -197,11 +199,40 @@ export default function Principal({ pareja, aviso, onAnadir, onAsistente, onRitu
   const tiposFiltro = FILTROS.find((f) => f.id === filtro).tipos;
   const listaVista = tiposFiltro ? listaMes.filter((m) => tiposFiltro.includes(m.tipo)) : listaMes;
 
+  // Borra gastos de Supabase por su id y los saca de la lista al tiro (sin esperar el próximo refresco).
+  // La condición codigo=eq.… es un seguro extra: nunca toca gastos de otra pareja.
+  async function borrarGastos(ids) {
+    try {
+      const lista = ids.map((id) => `"${id}"`).join(',');
+      await pedir(`movimientos?id=in.(${lista})&codigo=eq.${pareja.codigo}`, {
+        metodo: 'DELETE',
+        codigoPareja: pareja.codigo,
+      });
+      setMovimientos((previos) => previos.filter((m) => !ids.includes(m.id)));
+      setAbierto(null);
+    } catch (e) {
+      Alert.alert('No se pudo eliminar', String(e.message).slice(0, 150));
+    }
+  }
+
+  // Pide confirmación antes de borrar (el saldo cambia). Cancelar no hace nada.
+  function confirmarBorrado(item) {
+    Alert.alert(
+      '¿Eliminar este gasto?',
+      `${item.descripcion} · ${pesos(Number(item.monto))}\nEsto cambia el saldo.`,
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        { text: 'Eliminar', style: 'destructive', onPress: () => borrarGastos([item.id]) },
+      ]
+    );
+  }
+
   // Una fila de la lista. Al tocarla se abre y muestra el reparto.
+  // Los gastos se pueden arrastrar a la izquierda para eliminarlos; los pagos del cierre no (protegen el historial).
   function renderFila({ item }) {
     const expandida = abierto === item.id;
-    return (
-      <Pressable style={styles.fila} onPress={() => setAbierto(expandida ? null : item.id)}>
+    const fila = (
+      <Pressable style={[styles.fila, { marginTop: 0 }]} onPress={() => setAbierto(expandida ? null : item.id)}>
         <View style={styles.filaArriba}>
           <View style={{ flex: 1 }}>
             <Text style={styles.filaTitulo}>{item.descripcion}</Text>
@@ -214,6 +245,8 @@ export default function Principal({ pareja, aviso, onAnadir, onAsistente, onRitu
         {expandida && <Text style={styles.reparto}>Reparto: {textoReparto(item, nombres)}</Text>}
       </Pressable>
     );
+    if (item.tipo === 'pago') return <View style={{ marginTop: 8 }}>{fila}</View>;
+    return <FilaDeslizable onBorrar={() => confirmarBorrado(item)}>{fila}</FilaDeslizable>;
   }
 
   // Indicador de sincronización

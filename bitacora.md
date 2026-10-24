@@ -62,3 +62,4 @@
 - refactor: se quita el Resumen del Ritual y el botón Ritual de domingo; la pantalla pasa a llamarse Esta semana | archivos: src/pantallas/Ritual.js, src/pantallas/Principal.js, README.md | motivo: app más ordenada, la tarjeta Esta semana lleva a la pantalla
 - fix: mensaje de meta lograda más claro | archivos: src/mensajes.js | motivo: decía que la meta "era" 8 cuando ya se había cumplido
 - fix: mensajes distinguen meta de 10 y éxito desde 8 | archivos: src/mensajes.js, src/pantallas/Principal.js | motivo: decían que la meta era 8 y la meta es 10
+- feat: borrar un gasto deslizándolo a la izquierda, con confirmación | archivos: src/componentes/FilaDeslizable.js, src/pantallas/Principal.js | motivo: corregir gastos mal anotados (los pagos del cierre no se borran)
