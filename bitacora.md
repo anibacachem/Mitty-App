@@ -63,3 +63,4 @@
 - fix: mensaje de meta lograda más claro | archivos: src/mensajes.js | motivo: decía que la meta "era" 8 cuando ya se había cumplido
 - fix: mensajes distinguen meta de 10 y éxito desde 8 | archivos: src/mensajes.js, src/pantallas/Principal.js | motivo: decían que la meta era 8 y la meta es 10
 - feat: borrar un gasto deslizándolo a la izquierda, con confirmación | archivos: src/componentes/FilaDeslizable.js, src/pantallas/Principal.js | motivo: corregir gastos mal anotados (los pagos del cierre no se borran)
+- fix: el fondo rojo Eliminar solo se ve al arrastrar | archivos: src/componentes/FilaDeslizable.js | motivo: se veía el texto en todas las filas

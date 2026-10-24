@@ -12,6 +12,9 @@ export default function FilaDeslizable({ children, onBorrar }) {
   const alBorrar = useRef(onBorrar); // siempre la versión más reciente (el gesto se crea una sola vez)
   alBorrar.current = onBorrar;
 
+  // 0 cuando la fila está en su lugar; sube a 1 en cuanto se corre unos píxeles a la izquierda
+  const opacity = x.interpolate({ inputRange: [-24, -4, 0], outputRange: [1, 0, 0], extrapolate: 'clamp' });
+
   const volver = () => Animated.spring(x, { toValue: 0, useNativeDriver: true, bounciness: 0 }).start();
 
   const gesto = useRef(
@@ -30,9 +33,10 @@ export default function FilaDeslizable({ children, onBorrar }) {
 
   return (
     <View style={styles.contenedor}>
-      <View style={styles.fondo}>
+      {/* El fondo rojo es invisible mientras la fila está quieta (opacidad 0) y aparece solo al arrastrar */}
+      <Animated.View pointerEvents="none" style={[styles.fondo, { opacity }]}>
         <Text style={styles.fondoTexto}>Eliminar</Text>
-      </View>
+      </Animated.View>
       <Animated.View style={{ transform: [{ translateX: x }] }} {...gesto.panHandlers}>
         {children}
       </Animated.View>
