@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Image, Pressable, StyleSheet, Text, View } from 'react-native';
 import { pedir } from '../supabase';
 import { ACENTO } from '../colores';
 
@@ -29,6 +29,8 @@ export default function Inicio({ onCrear, onUnirme }) {
 
   return (
     <View style={styles.contenedor}>
+      {/* Logo de Mitty, centrado arriba del nombre */}
+      <Image source={require('../../assets/logo.png')} style={styles.logo} />
       <Text style={styles.titulo}>Mitty App</Text>
       <Text style={styles.subtitulo}>Los gastos de a dos, sin discusiones.</Text>
 
@@ -51,6 +53,7 @@ export default function Inicio({ onCrear, onUnirme }) {
 
 const styles = StyleSheet.create({
   contenedor: { flex: 1, backgroundColor: '#FFF8F5', padding: 24, justifyContent: 'center' },
+  logo: { width: 120, height: 120, alignSelf: 'center', marginBottom: 8 },
   titulo: { fontSize: 40, fontWeight: '700', color: ACENTO, textAlign: 'center' },
   subtitulo: { fontSize: 16, color: '#555', textAlign: 'center', marginBottom: 48, marginTop: 8 },
   botonPrincipal: { backgroundColor: ACENTO, paddingVertical: 18, borderRadius: 16, marginBottom: 14 },

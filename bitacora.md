@@ -80,3 +80,4 @@
 - docs: README en el orden de la hackatón (problema, por qué ese, qué dejamos fuera) y se agrega la expansión a amigos, roomies y familia | archivos: README.md | motivo: que la primera parte responda las tres preguntas que pide la hackatón
 - docs: se corrige por qué falló WhatsApp (calcular a fin de mes y trazabilidad perdida) | archivos: README.md, DEMO.md | motivo: que coincida con la lámina del jurado
 - style: el reparto "Mitad" pasa a llamarse "Mitty-Mota" (50/50 en jerga chilena) | archivos: src/pantallas/AnadirGasto.js, src/formato.js, README.md, DEMO.md | motivo: darle identidad a la app con el nombre
+- style: logo de Mitty arriba del título en la pantalla de inicio | archivos: src/pantallas/Inicio.js, bitacora.md | motivo: que la primera pantalla muestre la marca
